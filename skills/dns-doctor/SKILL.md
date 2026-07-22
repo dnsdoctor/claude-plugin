@@ -36,7 +36,8 @@ The tools come from the DNS Doctor MCP server. Two ways to reach it:
 - **Streamable HTTP (default, no setup):** `https://dnsdoctor.dev/mcp` — anonymous
   access exposes all the scanner tools. This plugin's `.mcp.json` already points
   here.
-- **stdio (local, from a checkout):** `python -m dns_doctor.mcp_server`.
+- (A local stdio entrypoint exists for DNS Doctor maintainers; the hosted HTTP
+  endpoint above is the supported public transport.)
 
 An optional API token (`Authorization: Bearer dnsd_…`) additionally unlocks the
 `dnsdoctor://domains` resource — the account's continuously-monitored domains.

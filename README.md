@@ -47,8 +47,7 @@ Add the marketplace/repo and enable the plugin:
 
 > Public home: [github.com/dnsdoctor/claude-plugin](https://github.com/dnsdoctor/claude-plugin)
 > (org `dnsdoctor`, domain-verified). The plugin is developed in the DNS Doctor
-> monorepo and published there as clean release snapshots — see
-> `docs/oss-conventions.md` for the publish rules.
+> monorepo and published here as clean release snapshots.
 
 Or point Claude Code at a local checkout of this directory during development.
 Once enabled, the skill auto-loads and the `dns-doctor` MCP server connects to
@@ -87,22 +86,12 @@ latest per-check statuses).
    Then export `DNSDOCTOR_API_TOKEN=dnsd_YOUR_TOKEN` in your environment. Never
    commit the token.
 
-### Local (stdio) instead of hosted HTTP
+### Transport
 
-From a checkout of the DNS Doctor repo:
-
-```json
-{
-  "mcpServers": {
-    "dns-doctor": {
-      "command": "python",
-      "args": ["-m", "dns_doctor.mcp_server"]
-    }
-  }
-}
-```
-
-stdio runs anonymous (scanner tools only; no `domains` resource).
+The hosted streamable-HTTP endpoint (`https://dnsdoctor.dev/mcp`, wired in this
+plugin's `.mcp.json`) is the supported public transport — no install, no keys.
+(A local stdio entrypoint exists for DNS Doctor maintainers only; its source is
+not part of this repository.)
 
 ## Worked example
 
