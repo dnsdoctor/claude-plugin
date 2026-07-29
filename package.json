@@ -1,7 +1,7 @@
 {
   "name": "@dnsdoctor/mcp",
-  "version": "1.2.0",
-  "description": "Thin stdio MCP server for DNS Doctor — diagnoses SPF, DMARC, DKIM, MX, DNS, blacklist and expiry over the public DNS Doctor REST API.",
+  "version": "1.2.1",
+  "description": "Thin stdio MCP server for DNS Doctor \u2014 diagnoses SPF, DMARC, DKIM, MX, DNS, blacklist and expiry over the public DNS Doctor REST API.",
   "license": "Apache-2.0",
   "author": {
     "name": "DNS Doctor",

@@ -10,6 +10,7 @@
     "inputSchema": {
       "properties": {
         "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
           "title": "Domain",
           "type": "string"
         }
@@ -33,10 +34,12 @@
     "inputSchema": {
       "properties": {
         "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
           "title": "Domain",
           "type": "string"
         },
         "selector": {
+          "description": "The DKIM selector to probe \u2014 the name before ._domainkey, e.g. 'google', 'selector1', or a dotted form like 's1.prod'. The sending platform's settings page names it; it is not guessable from the domain.",
           "title": "Selector",
           "type": "string"
         }
@@ -61,6 +64,7 @@
     "inputSchema": {
       "properties": {
         "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
           "title": "Domain",
           "type": "string"
         },
@@ -74,9 +78,11 @@
             }
           ],
           "default": null,
+          "description": "Optional label to prepend to the domain (e.g. 'mail' to check mail.<domain>) \u2014 honored for txt, cname, a and aaaa only; spf, dmarc and mx derive their own query name.",
           "title": "Host"
         },
         "kind": {
+          "description": "Which record to read; the right query is derived from it \u2014 'dmarc' reads TXT at _dmarc.<domain> filtered to v=DMARC1, 'spf' reads the apex TXT filtered to v=spf1, so don't prefix the domain yourself.",
           "enum": [
             "spf",
             "dmarc",
@@ -110,6 +116,7 @@
     "inputSchema": {
       "properties": {
         "ip": {
+          "description": "The sending IP to check, IPv4 or IPv6. Must be a public address \u2014 private, loopback and CGNAT ranges have no meaningful reverse DNS and are refused.",
           "title": "Ip",
           "type": "string"
         }
@@ -142,6 +149,7 @@
             }
           ],
           "default": null,
+          "description": "Domain whose PUBLISHED SPF record should be resolved and counted recursively (nested includes cost lookups too). Pass exactly one of domain or record, never both.",
           "title": "Domain"
         },
         "record": {
@@ -154,6 +162,7 @@
             }
           ],
           "default": null,
+          "description": "A pasted SPF record to parse instead of resolving one, e.g. 'v=spf1 include:_spf.google.com ~all'. Counts this record's own terms only. Pass exactly one of domain or record, never both.",
           "title": "Record"
         }
       },
@@ -173,6 +182,7 @@
     "inputSchema": {
       "properties": {
         "policy": {
+          "description": "The requested p= policy: 'none' monitors only, 'quarantine' sends failing mail to spam, 'reject' refuses it outright. Start at 'none' unless the domain's aggregate reports already justify enforcement.",
           "enum": [
             "none",
             "quarantine",
@@ -191,10 +201,12 @@
             }
           ],
           "default": null,
+          "description": "Mailbox to receive DMARC aggregate (RUA) reports, as a plain address like dmarc@example.com. Strongly recommended: without it nobody can see who sends as the domain.",
           "title": "Rua Email"
         },
         "strict_alignment": {
           "default": false,
+          "description": "Set true to emit strict alignment (aspf=s adkim=s), requiring an exact domain match instead of the organizational-domain match. Leave false unless you know every sender aligns strictly.",
           "title": "Strict Alignment",
           "type": "boolean"
         },
@@ -213,6 +225,7 @@
             }
           ],
           "default": null,
+          "description": "Optional sp= policy for subdomains when it should differ from the main p= policy. Omit to let subdomains inherit p=.",
           "title": "Subdomain Policy"
         }
       },
@@ -235,6 +248,7 @@
     "inputSchema": {
       "properties": {
         "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
           "title": "Domain",
           "type": "string"
         }
@@ -258,6 +272,7 @@
     "inputSchema": {
       "properties": {
         "content_base64": {
+          "description": "One DMARC aggregate (RUA) report file, base64-encoded: the .xml, .xml.gz or .zip attachment exactly as received, up to 2 MiB decoded. Encode the file bytes \u2014 do not paste raw XML here.",
           "title": "Content Base64",
           "type": "string"
         },
@@ -271,6 +286,7 @@
             }
           ],
           "default": null,
+          "description": "Optional original attachment filename, recorded in logs only \u2014 format detection is content-based, so this changes nothing about parsing.",
           "title": "Filename"
         }
       },
@@ -293,6 +309,7 @@
     "inputSchema": {
       "properties": {
         "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
           "title": "Domain",
           "type": "string"
         }
@@ -316,6 +333,7 @@
     "inputSchema": {
       "properties": {
         "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
           "title": "Domain",
           "type": "string"
         }
@@ -339,6 +357,7 @@
     "inputSchema": {
       "properties": {
         "record": {
+          "description": "The DMARC record text to validate, e.g. 'v=DMARC1; p=none; rua=mailto:reports@example.com'. The record value only \u2014 not the _dmarc hostname it is published at.",
           "title": "Record",
           "type": "string"
         }
