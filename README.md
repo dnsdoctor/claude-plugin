@@ -1,4 +1,4 @@
-# DNS Doctor — Claude Code plugin
+# DNS Doctor — Claude Code plugin & DNS skill (DMARC, SPF, DKIM)
 
 Diagnose and fix a domain's email authentication (SPF, DMARC, DKIM, MX, blacklist,
 domain/SSL expiry) from inside Claude. This plugin bundles the DNS Doctor **skill**
