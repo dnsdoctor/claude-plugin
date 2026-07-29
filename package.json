@@ -1,0 +1,50 @@
+{
+  "name": "@dnsdoctor/mcp",
+  "version": "1.2.0",
+  "description": "Thin stdio MCP server for DNS Doctor — diagnoses SPF, DMARC, DKIM, MX, DNS, blacklist and expiry over the public DNS Doctor REST API.",
+  "license": "Apache-2.0",
+  "author": {
+    "name": "DNS Doctor",
+    "url": "https://dnsdoctor.dev"
+  },
+  "homepage": "https://dnsdoctor.dev/methodology",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/dnsdoctor/claude-plugin.git"
+  },
+  "keywords": [
+    "mcp",
+    "dns",
+    "email",
+    "spf",
+    "dmarc",
+    "dkim",
+    "deliverability"
+  ],
+  "type": "module",
+  "bin": {
+    "dnsdoctor-mcp": "dist/index.js"
+  },
+  "files": [
+    "dist",
+    "tools.json",
+    "instructions.txt"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "prepack": "npm run build",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
