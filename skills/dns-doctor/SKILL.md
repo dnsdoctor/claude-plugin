@@ -105,6 +105,14 @@ timed out — retry, never report it as a verdict.
      propose no SPF/DKIM/DMARC records for it — there is no zone to publish them
      in — and don't offer monitoring until it resolves. The report's `next_steps`
      summary says all of this; relay it.
+   - **Read the DMARC check's `details`, not just its status.** One of them can say
+     the domain's aggregate reports are going to a third party that has not
+     published the RFC 7489 §7.1 authorization record — meaning the reports are
+     being **silently discarded** and the owner is collecting nothing, while the
+     DMARC record itself still looks correct. It is reported as a detail rather
+     than a failure because the domain's own configuration is not at fault; relay
+     it anyway, since a DMARC rollout waiting on evidence that never arrives is a
+     stall with no visible cause.
 3. **Explain the findings** in plain language: what is wrong, why it lets mail be
    spoofed or land in spam, and what fixing it achieves.
 4. **Get the fix record.** For DMARC enforcement, call `build_dmarc_upgrade`. It
