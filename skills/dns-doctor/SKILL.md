@@ -28,6 +28,9 @@ Reach for it whenever a user describes any of:
 - a bounce code like `550 5.7.515`, `550 5.7.1`, or `dmarc=fail`
 - "is my domain blacklisted?" / "am I on a blocklist?"
 - "when does my domain / TLS certificate expire?"
+- "who can send as us?" / auditing SPF includes before or after an email
+  provider migration
+- locking down parked, redirect or brand-defensive domains that send no mail
 
 ## Connect to the server
 
@@ -36,7 +39,7 @@ The tools come from the DNS Doctor MCP server. Two ways to reach it:
 - **Streamable HTTP (default, no setup):** `https://dnsdoctor.dev/mcp` — anonymous
   access exposes all the scanner tools. This plugin's `.mcp.json` already points
   here.
-- **Local stdio:** `npx -y @dnsdoctor/mcp` — the same 11 tools, run as a local
+- **Local stdio:** `npx -y @dnsdoctor/mcp` — the same 13 tools, run as a local
   process that calls the public DNS Doctor REST API. Use it when your client
   prefers stdio, or when you want the server under your own supervision. Set
   `DNSDOCTOR_API_TOKEN` in its environment to use a token (optional; anonymous
@@ -65,7 +68,7 @@ correctly" question:
 | `build_dmarc_upgrade` | `{ domain }` | A validated DMARC enforcement record + rationale. Scans fresh — the record edits the domain's *current* tags, so it is never built on a stale one. |
 | `start_monitoring_signup` | `{ domain }` | A sign-up link to hand to the human who owns the domain, plus a `message` to relay. **Sends no email and creates nothing** — the human opens the link, signs in on our page themselves (a social provider or an emailed link, whichever that deployment offers), and the domain is carried over to their dashboard, already filled in, from there. |
 
-Seven focused tools for the single questions a full scan over-answers. Each runs
+Nine focused tools for the single questions a full scan over-answers. Each runs
 the same validating engine:
 
 | Tool | Input | Returns |
@@ -77,6 +80,8 @@ the same validating engine:
 | `parse_dmarc_report` | `{ content_base64 }` | One DMARC aggregate (RUA) report parsed into readable per-source aggregates — who sent mail as the domain, how much, what share was aligned. XML, `.gz` or `.zip`, up to 2 MiB decoded. Nothing is stored. |
 | `check_record` | `{ domain, kind, host? }` | **Did the change land?** Reads the record from the domain's OWN nameservers (cache-free) *and* from two public caching resolvers, and reports whether they agree. `kind` is `spf\|dmarc\|txt\|mx\|cname\|a\|aaaa` — name the kind and the right query is derived for you. Empty `values` means the record is genuinely absent. When `in_sync` is false, `max_wait_seconds` is the largest remaining cached TTL. ⚠️ **Two resolvers is the whole sample — never describe this as worldwide, global, or propagation coverage.** |
 | `check_reverse_dns` | `{ ip }` | Forward-confirmed reverse DNS (FCrDNS) for one sending IP: the PTR record, the addresses that hostname resolves back to, and a `verdict` of `confirmed`, `ptr_missing` or `mismatch`. **A PTR alone proves nothing** — the IP's operator writes its own reverse zone, so only the forward confirmation is evidence, and **the fix belongs to whoever controls the IP**, never in the sending domain's own DNS. |
+| `audit_spf_includes` | `{ domain }` | **Who can transitively send as the domain.** Walks every `include` and `redirect` the SPF record delegates to and returns the resolved tree, per-node lookup attribution, the total authorized IPv4 address count, and typed findings: `include_broken` (a target that no longer publishes SPF — a PermError today), `include_registrable` (a delegated-to domain that does not exist, so a stranger who registers it becomes an authorized sender), `include_expiring` (registration lapsing within 30 days), `pass_all_nested` (a `+all` deep in the chain), `spf_record_unusable` (the audited domain's OWN record is missing or does not parse, so there is no chain to walk). A node the walk could not finish is marked `not_evaluated` rather than dropped. **A domain we could not verify is reported as unverified, never as available** — do not tell anyone a name is free unless the finding is `include_registrable` **and** carries `registry_confirmed: true`; on `registry_confirmed: false` the proof is DNS NXDOMAIN alone, which a name in redemption or on `clientHold` answers identically, so report the broken mechanism and the takeover risk but never call the name available. Findings are risk analysis, not instructions: there is still **no SPF fix record**. Use `count_spf_lookups` instead when the question is only the 10-lookup limit. |
+| `build_parked_domain_records` | `{ domain, confirm_no_mail: true, rua_email? }` | The three-record hardening pack that makes a **non-sending** domain unusable for spoofing: a Null MX, a hard-fail SPF record, and a `p=reject; np=reject` DMARC record, in rollout order with a `check_record` verify step each. Parked, redirect and brand-defensive domains only. **Never set `confirm_no_mail` on your own judgment** — see the rule below. The server re-checks DNS itself and returns `records: null` + a `rationale` when it finds evidence of mail; a lookup failure is reported as a failure, never as a pack. |
 
 Every domain input is normalized server-side; a malformed domain returns a clean
 tool error, never a crash. A `temperror`-shaped tool error means a DNS lookup
@@ -144,7 +149,26 @@ key.
 SPF is likewise diagnose-only: DNS Doctor reports SPF problems but deliberately
 emits **no** SPF fix record, because an auto-"fix" can silently de-authorize a
 real sender. Relay the report's SPF findings; do not propose SPF edits of your
-own (e.g. switching `~all` to `-all`).
+own (e.g. switching `~all` to `-all`). The one SPF record DNS Doctor ever emits
+is the constant `v=spf1 -all` inside the parked-domain pack, for a domain the
+server itself verified sends no mail — that is the whole carve-out, and it does
+not extend to any domain that sends.
+
+**Never assert that a domain sends no mail yourself.** `confirm_no_mail` is the
+human owner's statement, not an inference you may draw from a quiet scan: a
+domain with one legacy or transactional sender looks identical in DNS to a
+parked one until you ask. The flag unlocks the question, not the answer — the
+server re-checks existence, MX, SPF and DKIM selectors and refuses with a
+`rationale` when it finds evidence of mail. Relay that rationale; do not retry
+around it.
+
+**DMARC records DNS Doctor generates carry `np=reject`** (DMARCbis, RFC 9989)
+whenever the input has no explicit `np` of its own. A subdomain that does not
+exist in DNS cannot have published SPF or DKIM records, so it can have no
+aligned legitimate mail — the tag is safe at any org-domain policy, and
+receivers that predate RFC 9989 ignore it and fall back to `sp`/`p`. If a record
+already sets `np`, that value is preserved untouched. It is part of the
+validated record: present it verbatim like the rest.
 
 ## DMARC enforcement takes time — set expectations honestly
 
@@ -166,6 +190,110 @@ Daily monitoring is gated on proving they control the domain, so they finish by
 publishing a TXT record the dashboard shows them. The tool's own `message` says
 this; relay it verbatim rather than paraphrasing it into "we're now watching your
 domain".
+
+What continuous monitoring is, so you can describe it accurately: once a domain
+is verified, DNS Doctor re-scans it daily and keeps the **history** of every
+check, emails **alerts** when a verdict changes or a new sending source appears,
+ingests the domain's DMARC **aggregate (RUA) reports**, and derives an
+enforcement **readiness** verdict from them — the 30-day alignment evidence this
+session cannot gather. That is what `start_monitoring_signup` hands off to; none
+of it happens from a one-off scan.
+
+## Playbooks
+
+Four read-orders over the tool surface. Each is an evidence sequence: run the
+step, read what it rules in or out, and stop when the evidence answers the
+question. **Report what the tools returned.** Do not estimate how much mail is
+affected, how likely a problem is, or what a fix will improve by — DNS Doctor
+returns evidence, and a number you invented beside it reads as though the
+scanner produced it.
+
+### 1. Pre-migration audit — before moving email providers
+
+1. `scan_domain` the domain. Note the current SPF, DKIM and DMARC verdicts as
+   the "before" state; this is what you will compare against after the cutover.
+2. `audit_spf_includes`. The tree names every provider the domain currently
+   delegates authorization to — including the ones nobody remembers adding.
+   Decision point: each include belongs to a sender that is either staying,
+   going, or unknown. Ask the owner which; do not guess from the vendor name.
+3. Read the findings before planning any edit. `include_broken` is already
+   failing today and is not caused by the migration. `pass_all_nested` means
+   some delegated record authorizes the whole internet — flag it now, because
+   the migration is the moment to drop that include. `include_registrable` and
+   `include_expiring` name includes that are unsafe to carry over.
+4. `count_spf_lookups` to see the lookup cost of the current record, and what
+   headroom the new provider's include needs. The limit is 10 and it is counted
+   recursively.
+5. Write the cutover checklist with the owner: which includes are removed, which
+   are added, what DKIM selectors the new provider publishes, whether DMARC
+   policy should be relaxed during the move. **You propose; they decide.**
+6. After each DNS change lands, `check_record` that one record (`spf`, `dmarc`,
+   or `txt` for a selector) to confirm it is live and in sync, then `scan_domain`
+   once the whole cutover is done to compare against step 1.
+
+### 2. Deliverability triage — "our mail isn't arriving"
+
+Work the evidence in this order and say explicitly what each step rules out.
+
+1. `scan_domain`. If `not_registered` is true, stop — the domain does not
+   resolve and nothing below applies.
+2. **Authentication first.** Read SPF, DKIM and DMARC. A `fail` here is the
+   most common cause and the cheapest to fix. `temperror` rules nothing out —
+   it means the lookup did not complete; retry before drawing any conclusion.
+3. **Blacklist.** A listing explains rejection at the receiving edge even when
+   authentication is perfect. A clean result rules the blocklists we query out,
+   and only those.
+4. **MX.** Check the receiving side if inbound mail is the complaint. Outbound
+   problems are unaffected by MX — say so rather than reporting it as a finding.
+5. **Alignment.** SPF or DKIM passing is not enough for DMARC: the passing
+   identifier must align with the From domain. `build_dmarc_upgrade`'s
+   `rationale` states what the server found; the report's DMARC detail lines
+   name misaligned or unauthorized sources.
+6. **Sending IP.** If a specific IP is being rejected, `check_reverse_dns` on
+   it. `ptr_missing` or `mismatch` is a real deliverability cause — and the fix
+   belongs to whoever operates the IP, not in the domain's DNS.
+7. If the evidence is exhausted and mail still is not arriving, say that
+   plainly: DNS-observable checks cannot see content filtering, reputation, or
+   the receiving side's policy. Do not fill the gap with a guess.
+
+### 3. Getting to `p=reject`
+
+1. `scan_domain` for the current policy, then `build_dmarc_upgrade`. The server
+   derives the alignment gate itself: `p=reject` only when SPF is aligned and a
+   DKIM selector was found, otherwise it caps at `p=quarantine`.
+2. If `record` is `null`, the `rationale` is the answer — including "already at
+   least as strong". Relay it; never compose a record to fill the gap.
+3. Present the returned record verbatim; the human publishes it, then
+   `check_record` with `kind: dmarc` confirms it landed.
+4. **Be honest about the next step.** The rung after `p=quarantine` needs
+   roughly 30 days of aggregate-report evidence that every legitimate sender is
+   aligned. You cannot watch that within a session, and there is no shortcut
+   that makes `p=reject` safe sooner.
+5. If the owner has RUA files already, `parse_dmarc_report` reads one report and
+   shows the per-source aligned share. One report is one window from one
+   receiver — useful evidence, not a readiness verdict.
+6. For the 30-day watch, `start_monitoring_signup` and hand over the
+   `signup_url`. That is what supplies the readiness verdict this step needs.
+
+### 4. Parked-domain sweep (MSP / multi-domain)
+
+1. Start from the owner's list of domains they believe send no mail — brand
+   defensives, redirects, old acquisitions. **The list comes from them.** You
+   may not classify a domain as parked from a scan.
+2. Per domain, `scan_domain` first. It gives you the state to show the owner,
+   and `not_registered` domains drop out of the sweep immediately.
+3. Ask the owner to confirm, domain by domain, that it sends nothing —
+   including transactional mail, monitoring alerts, and any one legacy system.
+   Only then call `build_parked_domain_records` with `confirm_no_mail: true`.
+4. Read the response before presenting anything. `records: null` means the
+   server found DNS evidence of mail; relay the `rationale` and remove that
+   domain from the sweep. A transient failure is a retry, never a pass.
+5. On a pass, present the three records verbatim in the order given, with each
+   record's purpose and its `check_record` verify step. Publishing is the
+   human's decision, one record at a time if they prefer.
+6. After publishing, `check_record` per record (`mx`, `spf`, `dmarc`) to confirm
+   each is live and in sync. Passing `rua_email` on the build puts spoof
+   attempts against the parked domain into aggregate reports.
 
 ## Learn more
 

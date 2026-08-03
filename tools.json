@@ -2,11 +2,35 @@
   {
     "annotations": {
       "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Audit a domain's SPF supply chain: walks every include and redirect it delegates to, and reports who can transitively send as it. Returns the resolved tree, per-node lookup attribution, the total authorized IPv4 address count, and typed findings \u2014 include_broken (a target that no longer publishes SPF, a PermError today), include_registrable (a delegated-to domain that does not exist, so a stranger who registers it becomes an authorized sender), include_expiring (registration lapsing within 30 days), pass_all_nested (a +all deep in the chain) and spf_record_unusable (the audited domain's OWN record is missing or does not parse, so there is no chain to walk). A domain we could not verify is reported as unverified and NEVER as available \u2014 never tell anyone a name is free on this tool's say-so unless the finding is include_registrable AND carries registry_confirmed: true. A registry_confirmed: false finding rests on DNS alone, which cannot tell an unsold name from one in redemption or on clientHold: report the mechanism as broken and the takeover risk as possible, but never as an available domain. Findings are risk analysis, not instructions: no SPF fix record exists here or anywhere else in DNS Doctor, because dropping a mechanism can silently de-authorize a real sender \u2014 relay the findings and let the domain's owner decide. Use count_spf_lookups instead when the question is only the 10-lookup limit.",
+    "inputSchema": {
+      "properties": {
+        "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
+          "title": "Domain",
+          "type": "string"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "audit_spf_includesArguments",
+      "type": "object"
+    },
+    "name": "audit_spf_includes"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
       "idempotentHint": false,
       "openWorldHint": true,
       "readOnlyHint": false
     },
-    "description": "Return a validated DMARC enforcement-upgrade record for a domain. The alignment gate (whether p=reject is safe) is derived server-side from a scan \u2014 a caller can never assert alignment. `record` is null when there is no honest upgrade to offer (the domain does not exist; the DMARC lookup itself hit NXDOMAIN while the existence probe did not resolve; the DMARC lookup temp-failed; or the domain already applies a policy at least as strong as this scan justifies): relay `rationale` and never compose a record to fill the gap. Present a returned record verbatim; a human must approve before publishing.",
+    "description": "Return a validated DMARC enforcement-upgrade record for a domain. The alignment gate (whether p=reject is safe) is derived server-side from a scan \u2014 a caller can never assert alignment. `record` is null when there is no honest upgrade to offer (the domain does not exist; the DMARC lookup itself hit NXDOMAIN while the existence probe did not resolve; the DMARC lookup temp-failed; or the domain already applies a policy at least as strong as this scan justifies): relay `rationale` and never compose a record to fill the gap. A returned record also carries np=reject (the DMARCbis tag covering non-existent subdomains, which can have no legitimate aligned mail) unless the domain already publishes an np tag, which is preserved as-is. Present a returned record verbatim; a human must approve before publishing.",
     "inputSchema": {
       "properties": {
         "domain": {
@@ -22,6 +46,49 @@
       "type": "object"
     },
     "name": "build_dmarc_upgrade"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
+    "description": "Build the three-record hardening pack that makes a NON-SENDING domain unusable for spoofing: a Null MX, a hard-fail SPF record, and a p=reject; np=reject DMARC record. For parked, redirect and brand-defensive domains only \u2014 NEVER for a domain that sends any mail, including transactional or one legacy system. Do NOT set confirm_no_mail on your own judgment or because a scan looked quiet: only the human who owns the domain can confirm it sends nothing, so ask them first. That flag unlocks the question, not the answer \u2014 the server re-checks DNS itself (existence, MX, SPF, DKIM selectors) and returns records: null with a rationale when it finds evidence of mail; relay that rationale rather than retrying. A lookup failure is reported as a failure, never as a pack. Publishing is the human's decision: present the records verbatim, in the order given, and let them approve each one.",
+    "inputSchema": {
+      "properties": {
+        "confirm_no_mail": {
+          "description": "Must be true, and only the HUMAN who owns the domain may decide it: it records their confirmation that this domain sends no email at all. Never set it on your own judgment or because a scan looked quiet \u2014 ask them. It unlocks the question only; the server independently re-checks DNS for evidence of mail and refuses when it finds any.",
+          "title": "Confirm No Mail",
+          "type": "boolean"
+        },
+        "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
+          "title": "Domain",
+          "type": "string"
+        },
+        "rua_email": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Mailbox to receive DMARC aggregate (RUA) reports, as a plain address like dmarc@example.com. Strongly recommended: without it nobody can see who sends as the domain.",
+          "title": "Rua Email"
+        }
+      },
+      "required": [
+        "domain",
+        "confirm_no_mail"
+      ],
+      "title": "build_parked_domain_recordsArguments",
+      "type": "object"
+    },
+    "name": "build_parked_domain_records"
   },
   {
     "annotations": {
@@ -178,7 +245,7 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "Build a DMARC record from scratch for a domain that has none, using a validating engine \u2014 never compose one yourself. `policy` is none|quarantine|reject; optional `rua_email` (aggregate-report destination), `subdomain_policy`, and `strict_alignment`. The generated record is re-validated before it is returned. Present it verbatim; a human must approve before publishing.",
+    "description": "Build a DMARC record from scratch for a domain that has none, using a validating engine \u2014 never compose one yourself. `policy` is none|quarantine|reject; optional `rua_email` (aggregate-report destination), `subdomain_policy`, and `strict_alignment`. Every generated record carries np=reject \u2014 the DMARCbis tag for non-existent subdomains, which can have no legitimate aligned mail \u2014 independently of the p= you choose. The generated record is re-validated before it is returned. Present it verbatim; a human must approve before publishing.",
     "inputSchema": {
       "properties": {
         "policy": {

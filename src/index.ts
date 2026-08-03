@@ -58,6 +58,11 @@ const ROUTES: Record<string, Route> = {
   },
   check_record: { kind: "json", path: "/api/tools/check-record" },
   check_reverse_dns: { kind: "json", path: "/api/tools/reverse-dns-check" },
+  audit_spf_includes: { kind: "json", path: "/api/tools/spf-audit" },
+  build_parked_domain_records: {
+    kind: "json",
+    path: "/api/tools/parked-domain-records",
+  },
 };
 
 /** Default upload name when the caller supplies none — the API only reads bytes. */

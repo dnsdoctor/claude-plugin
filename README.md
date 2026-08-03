@@ -18,7 +18,7 @@ claude-plugin/
 ├── .mcp.json                    # MCP server: https://dnsdoctor.dev/mcp (HTTP)
 ├── skills/dns-doctor/SKILL.md   # the scan → diagnose → fix workflow
 ├── src/                         # @dnsdoctor/mcp — the local stdio MCP server
-├── tools.json                   # the 11 tool definitions (generated, never hand-edited)
+├── tools.json                   # the 13 tool definitions (generated, never hand-edited)
 ├── instructions.txt             # the server's own `initialize` guidance (generated)
 ├── tests/                       # vitest suite for the stdio server
 ├── package.json  tsconfig.json  # npm package + build
@@ -40,6 +40,8 @@ claude-plugin/
 | `parse_dmarc_report` | Parse an aggregate (RUA) report file into rows. |
 | `check_record` | Read any DNS record type for a name. |
 | `check_reverse_dns` | PTR / forward-confirmed reverse DNS for an IP. |
+| `audit_spf_includes` | The SPF include/redirect tree — who can transitively send as the domain, with typed findings (broken include, confirmed-unregistered include, expiring registration, nested `+all`). Analysis only; no SPF fix record. |
+| `build_parked_domain_records` | The Null MX + `v=spf1 -all` + `p=reject; np=reject` hardening pack for a domain that sends no mail. The server re-checks DNS itself and refuses when it finds evidence of mail. |
 | `start_monitoring_signup` | A sign-up link to hand to the human who owns the domain. Sends no email and creates nothing — they open it, sign in on our page themselves (a social provider or an emailed link, whichever that deployment offers), and the domain is carried over to their dashboard already filled in; monitoring starts once they verify it with a TXT record. |
 
 Over the hosted HTTP transport the `dnsdoctor://domains` resource (your
@@ -101,7 +103,7 @@ latest per-check statuses).
 
 ### Transport
 
-Two supported public transports, same 11 tools:
+Two supported public transports, same 13 tools:
 
 - **Hosted streamable HTTP** — `https://dnsdoctor.dev/mcp`, wired in this
   plugin's `.mcp.json`. No install, no keys.
