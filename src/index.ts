@@ -32,13 +32,17 @@ type ToolArgs = Record<string, unknown>;
  *
  * `json` posts the caller's arguments as the request body **unchanged** — the
  * tool argument names are the REST field names on every one of these endpoints,
- * so there is nothing to translate and therefore nothing to get wrong. The two
+ * so there is nothing to translate and therefore nothing to get wrong. `query`
+ * is the same property one transport over: a GET whose search params are the
+ * tool's own arguments, values relayed verbatim and absent ones simply omitted
+ * (a default invented here would disagree with the server's). The two remaining
  * exceptions carry their own kind: `get_report` puts the domain in the path, and
  * `parse_dmarc_report` takes the report as base64 and must upload it as a file
  * part.
  */
 type Route =
   | { kind: "json"; path: string }
+  | { kind: "query"; path: string }
   | { kind: "report" }
   | { kind: "upload"; path: string; field: string };
 
@@ -63,6 +67,8 @@ const ROUTES: Record<string, Route> = {
     kind: "json",
     path: "/api/tools/parked-domain-records",
   },
+  get_alerts: { kind: "query", path: "/api/v1/alerts" },
+  get_readiness: { kind: "query", path: "/api/v1/readiness" },
 };
 
 /** Default upload name when the caller supplies none — the API only reads bytes. */
@@ -76,6 +82,24 @@ function requireString(args: ToolArgs, key: string): string {
   return value;
 }
 
+/**
+ * The tool's own arguments as a query string — no defaults, no renames.
+ *
+ * `undefined`/`null` are dropped rather than sent as empty strings: the two
+ * monitoring reads treat an absent filter and a blank one differently, and the
+ * server owns every default (page size, window). Everything else is stringified
+ * verbatim, so an opaque cursor goes back exactly as it came out.
+ */
+function queryString(args: ToolArgs): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(args)) {
+    if (value === undefined || value === null) continue;
+    params.append(key, typeof value === "string" ? value : String(value));
+  }
+  const encoded = params.toString();
+  return encoded === "" ? "" : `?${encoded}`;
+}
+
 /** Run one tool and return the API's parsed body, untouched. */
 export async function callTool(name: string, args: ToolArgs = {}): Promise<unknown> {
   const route = ROUTES[name];
@@ -85,6 +109,9 @@ export async function callTool(name: string, args: ToolArgs = {}): Promise<unkno
   if (route.kind === "report") {
     const domain = requireString(args, "domain");
     return getJson(`/api/v1/report/${encodeURIComponent(domain)}`);
+  }
+  if (route.kind === "query") {
+    return getJson(`${route.path}${queryString(args)}`);
   }
   if (route.kind === "upload") {
     const content = requireString(args, "content_base64");

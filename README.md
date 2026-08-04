@@ -18,7 +18,7 @@ claude-plugin/
 ├── .mcp.json                    # MCP server: https://dnsdoctor.dev/mcp (HTTP)
 ├── skills/dns-doctor/SKILL.md   # the scan → diagnose → fix workflow
 ├── src/                         # @dnsdoctor/mcp — the local stdio MCP server
-├── tools.json                   # the 13 tool definitions (generated, never hand-edited)
+├── tools.json                   # the 15 tool definitions (generated, never hand-edited)
 ├── instructions.txt             # the server's own `initialize` guidance (generated)
 ├── tests/                       # vitest suite for the stdio server
 ├── package.json  tsconfig.json  # npm package + build
@@ -43,11 +43,16 @@ claude-plugin/
 | `audit_spf_includes` | The SPF include/redirect tree — who can transitively send as the domain, with typed findings (broken include, confirmed-unregistered include, expiring registration, nested `+all`). Analysis only; no SPF fix record. |
 | `build_parked_domain_records` | The Null MX + `v=spf1 -all` + `p=reject; np=reject` hardening pack for a domain that sends no mail. The server re-checks DNS itself and refuses when it finds evidence of mail. |
 | `start_monitoring_signup` | A sign-up link to hand to the human who owns the domain. Sends no email and creates nothing — they open it, sign in on our page themselves (a social provider or an emailed link, whichever that deployment offers), and the domain is carried over to their dashboard already filled in; monitoring starts once they verify it with a TXT record. |
+| `get_alerts` | **Token required.** The account's monitoring alert log, newest first. Read-only — no acknowledge, no delete. Page down with `before` until `next_before` is `null` before advancing `since`. |
+| `get_readiness` | **Token required.** Whether one monitored domain's aggregate-report evidence justifies a stronger DMARC policy yet: `ready`, the `blockers`, and `next_record` (validated, or `null` while blocked — which is an answer, not a gap). |
 
-Over the hosted HTTP transport the `dnsdoctor://domains` resource (your
-monitored domains) is always listed; reading it needs an API token and is
-refused without one. The local stdio server registers the tools only — no
-resource. Anonymous access is enough for a one-off diagnosis either way.
+The two monitoring reads are **listed for everyone and callable with a token**:
+they appear in the tool list on both transports, and without a valid token the
+call is refused with the page the account owner mints one on. Over the hosted
+HTTP transport the `dnsdoctor://domains` resource (your monitored domains) is
+likewise always listed and refused without a token; the local stdio server
+registers the tools only — no resource. Anonymous access covers all thirteen
+diagnosis tools, which is enough for a one-off diagnosis either way.
 
 ## Install
 
@@ -79,8 +84,9 @@ Add a custom connector with:
 ## Optional: API token for monitored domains
 
 Anonymous access covers scanning and fixes. A per-account API token unlocks the
-`dnsdoctor://domains` resource (your continuously-monitored domains and their
-latest per-check statuses).
+account's own monitoring data: the `get_alerts` and `get_readiness` tools, and
+the `dnsdoctor://domains` resource (your continuously-monitored domains and
+their latest per-check statuses).
 
 1. Sign in at <https://dnsdoctor.dev> → **Settings → API tokens** → create a token.
    The plaintext (`dnsd_…`) is shown once; copy it.
@@ -103,7 +109,7 @@ latest per-check statuses).
 
 ### Transport
 
-Two supported public transports, same 13 tools:
+Two supported public transports, same 15 tools:
 
 - **Hosted streamable HTTP** — `https://dnsdoctor.dev/mcp`, wired in this
   plugin's `.mcp.json`. No install, no keys.
@@ -123,7 +129,8 @@ Two supported public transports, same 13 tools:
 }
 ```
 
-`DNSDOCTOR_API_TOKEN` is optional (anonymous access covers scanning and fixes).
+`DNSDOCTOR_API_TOKEN` is optional (anonymous access covers scanning and fixes;
+the two monitoring reads need it).
 `DNSDOCTOR_API_BASE` overrides the origin — it must be an origin that serves the
 `/api/…` paths, i.e. the public site rather than a bare backend port.
 

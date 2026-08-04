@@ -45,7 +45,15 @@ export function apiBase(): string {
   return base.replace(/\/+$/, "");
 }
 
-/** Optional bearer token — anonymous access works, a token only raises the budget. */
+/**
+ * The bearer token, when the environment carries one — sent on every request,
+ * GET included.
+ *
+ * Most tools work anonymously and a token only raises the budget, but the two
+ * monitoring reads (`get_alerts`, `get_readiness`) REQUIRE one: without it the
+ * API answers 401 and its `detail` is the guidance (mint one on the dashboard),
+ * which `toApiError` relays verbatim. Never prompt a human for the token here.
+ */
 function authHeaders(): Record<string, string> {
   const token = process.env.DNSDOCTOR_API_TOKEN?.trim();
   return token ? { Authorization: `Bearer ${token}` } : {};

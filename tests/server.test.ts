@@ -61,8 +61,8 @@ describe("tools/list", () => {
     await client.close();
   });
 
-  it("exposes the thirteen hosted tools", () => {
-    expect(listTools()).toHaveLength(13);
+  it("exposes the fifteen hosted tools", () => {
+    expect(listTools()).toHaveLength(15);
   });
 
   it("routes every fixture tool", () => {
@@ -172,6 +172,72 @@ describe("handlers", () => {
       await callTool(tool, { domain: "example.com" });
       expect(lastCall()[0]).toBe(`https://dnsdoctor.dev${path}`);
     }
+  });
+
+  it("get_alerts is a GET whose search params are its own arguments", async () => {
+    const page = {
+      next_before: "2026-08-04T10:00:00+00:00,41",
+      alerts: [{ id: 42, domain: "example.com", delivery_class: "dashboard_only" }],
+    };
+    fetchMock.mockResolvedValue(jsonResponse(200, page));
+    const body = await callTool("get_alerts", {
+      since: "2026-08-01T00:00:00+00:00",
+      domain: "example.com",
+      type: "record_changed",
+      limit: 10,
+      before: "2026-08-04T11:00:00+00:00,99",
+    });
+    const [url, init] = lastCall();
+    expect(init.method).toBe("GET");
+    const parsed = new URL(url);
+    expect(`${parsed.origin}${parsed.pathname}`).toBe("https://dnsdoctor.dev/api/v1/alerts");
+    // Names and values, not their ORDER: the server reads query params as a
+    // map, so pinning the order would fail a correct client that sorted keys
+    // for deterministic URLs. The subject here is that each argument is relayed
+    // under its own name, verbatim — the cursor especially (asserted again
+    // below), since a re-encoded one strands rows.
+    expect(Object.fromEntries(parsed.searchParams)).toEqual({
+      since: "2026-08-01T00:00:00+00:00",
+      domain: "example.com",
+      type: "record_changed",
+      limit: "10",
+      before: "2026-08-04T11:00:00+00:00,99",
+    });
+    // The cursor is relayed byte-for-byte — a client that reshaped it would page
+    // into the wrong window, silently.
+    expect(body).toEqual(page);
+  });
+
+  it("omits absent get_alerts filters rather than sending blanks or defaults", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(200, { next_before: null, alerts: [] }));
+    await callTool("get_alerts", { domain: "example.com", since: undefined, before: null });
+    // No invented `limit`: the server owns the page size, and a default composed
+    // here would disagree with it the day it changes.
+    expect(lastCall()[0]).toBe("https://dnsdoctor.dev/api/v1/alerts?domain=example.com");
+  });
+
+  it("get_readiness sends its required domain as a search param", async () => {
+    const verdict = { domain: "exämple.com", ready: false, next_record: null };
+    fetchMock.mockResolvedValue(jsonResponse(200, verdict));
+    const body = await callTool("get_readiness", { domain: "exämple.com" });
+    const [url, init] = lastCall();
+    expect(init.method).toBe("GET");
+    expect(url).toBe("https://dnsdoctor.dev/api/v1/readiness?domain=ex%C3%A4mple.com");
+    expect(body).toEqual(verdict);
+  });
+
+  it("sends the bearer token on a query-kind GET and relays a 401 detail verbatim", async () => {
+    process.env.DNSDOCTOR_API_TOKEN = "dnsd_YOUR_TOKEN";
+    fetchMock.mockResolvedValue(jsonResponse(200, { next_before: null, alerts: [] }));
+    await callTool("get_alerts", {});
+    expect(headersOf(lastCall()[1])["Authorization"]).toBe("Bearer dnsd_YOUR_TOKEN");
+
+    delete process.env.DNSDOCTOR_API_TOKEN;
+    const guidance =
+      "an API token is required — mint one at https://dnsdoctor.dev/dashboard/settings";
+    fetchMock.mockResolvedValue(jsonResponse(401, { detail: guidance }));
+    await expect(callTool("get_alerts", {})).rejects.toThrow(guidance);
+    expect(headersOf(lastCall()[1])["Authorization"]).toBeUndefined();
   });
 
   it("parse_dmarc_report decodes base64 into a multipart file part", async () => {

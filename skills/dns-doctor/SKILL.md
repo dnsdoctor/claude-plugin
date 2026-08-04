@@ -46,20 +46,26 @@ The tools come from the DNS Doctor MCP server. Two ways to reach it:
 - **Streamable HTTP (default, no setup):** `https://dnsdoctor.dev/mcp` — anonymous
   access exposes all the scanner tools. This plugin's `.mcp.json` already points
   here.
-- **Local stdio:** `npx -y @dnsdoctor/mcp` — the same 13 tools, run as a local
+- **Local stdio:** `npx -y @dnsdoctor/mcp` — the same 15 tools, run as a local
   process that calls the public DNS Doctor REST API. Use it when your client
   prefers stdio, or when you want the server under your own supervision. Set
-  `DNSDOCTOR_API_TOKEN` in its environment to use a token (optional; anonymous
-  works).
+  `DNSDOCTOR_API_TOKEN` in its environment to use a token (optional for the
+  diagnosis tools; required for the two monitoring reads).
 
-An optional API token (`Authorization: Bearer dnsd_…`) additionally unlocks the
-`dnsdoctor://domains` resource — the account's continuously-monitored domains.
-Over HTTP that resource is always *listed*; without a valid token the read is
-refused. The scanner tools need no token and are enough for a one-off diagnosis.
+The thirteen diagnosis tools need no token and are enough for a one-off
+diagnosis. An API token (`Authorization: Bearer dnsd_…`) additionally unlocks:
+
+- `get_alerts` and `get_readiness` — the two monitoring reads, which return one
+  account's own data. They are **listed for everyone and callable with a token**:
+  they appear in the tool list whether or not you have one, and without a valid
+  token the call is refused with guidance rather than hidden.
+- the `dnsdoctor://domains` resource — the account's continuously-monitored
+  domains. Over HTTP that resource is likewise always *listed* and refused
+  without a token.
 
 **You cannot create a token, so do not try.** Minting is session-authenticated:
 the account owner creates one while signed in, at `/dashboard/settings` on the
-DNS Doctor site. A refused read tells you the exact page — relay that link to the
+DNS Doctor site. A refusal tells you the exact page — relay that link to the
 person you are helping and let them decide whether they want one. **Never ask
 anyone to paste a token, or any other credential, to you.**
 
@@ -90,9 +96,25 @@ the same validating engine:
 | `audit_spf_includes` | `{ domain }` | **Who can transitively send as the domain.** Walks every `include` and `redirect` the SPF record delegates to and returns the resolved tree, per-node lookup attribution, the total authorized IPv4 address count, and typed findings: `include_broken` (a target that no longer publishes SPF — a PermError today), `include_registrable` (a delegated-to domain that does not exist, so a stranger who registers it becomes an authorized sender), `include_expiring` (registration lapsing within 30 days), `pass_all_nested` (a `+all` deep in the chain), `spf_record_unusable` (the audited domain's OWN record is missing or does not parse, so there is no chain to walk). A node the walk could not finish is marked `not_evaluated` rather than dropped. **A domain we could not verify is reported as unverified, never as available** — do not tell anyone a name is free unless the finding is `include_registrable` **and** carries `registry_confirmed: true`; on `registry_confirmed: false` the proof is DNS NXDOMAIN alone, which a name in redemption or on `clientHold` answers identically, so report the broken mechanism and the takeover risk but never call the name available. Findings are risk analysis, not instructions: there is still **no SPF fix record**. Use `count_spf_lookups` instead when the question is only the 10-lookup limit. |
 | `build_parked_domain_records` | `{ domain, confirm_no_mail: true, rua_email? }` | The three-record hardening pack that makes a **non-sending** domain unusable for spoofing: a Null MX, a hard-fail SPF record, and a `p=reject; np=reject` DMARC record, in rollout order with a `check_record` verify step each. Parked, redirect and brand-defensive domains only. **Never set `confirm_no_mail` on your own judgment** — see the rule below. The server re-checks DNS itself and returns `records: null` + a `rationale` when it finds evidence of mail; a lookup failure is reported as a failure, never as a pack. |
 
+Two monitoring reads over an account's **own** continuously-monitored domains.
+Both need a token (see *Connect to the server*), both are **read-only by
+decision**, and both answer from the same cores the dashboard reads, so an agent
+and its human are never told different things:
+
+| Tool | Input | Returns |
+|---|---|---|
+| `get_alerts` | `{ since?, domain?, type?, limit?, before? }` | The account's monitoring alert log, newest first: `id`, `domain`, `type`, `check`, `summary`, a deterministic `detail` map, `created_at`, `email_sent_at`, `acknowledged_at`, `delivery_class`. **Rows carry `delivery_class`** — a `dashboard_only` row was deliberately kept out of the digest mail, so an agent watching only a mailbox sees less than this log holds. **Page down before advancing `since`:** `next_before` is non-null exactly when older rows remain; pass it back as `before` until it is `null`, *then* move your watermark. A caller that takes a full page and jumps `since` to the newest row it saw silently drops every row it never received. `since` is an **inclusive** floor, so rows repeat rather than go missing — de-duplicate on `id`. **No ack, no delete**: acknowledging is the human's own triage on their dashboard, and an agent that acks on their behalf silences a row the human has never seen. |
+| `get_readiness` | `{ domain }` | The DMARC enforcement-readiness verdict for ONE monitored domain, computed from its aggregate (RUA) report window: `ready`, `current_step`, `next_step`, `blockers`, the window (`window_days`, `total_messages`, `progress`), `enrollment`, and `next_record` — the validated record for the next step, engine-generated. **`next_record` is `null` while blocked, and that null is an answer:** relay the blockers, never compose a stronger record to fill the gap. Use this before proposing enforcement — a scan shows a domain's *current* policy, but only this evidence window can say whether tightening it would start rejecting real mail. |
+
+An anonymous or invalid-token call to either is refused with the page the owner
+mints a token on. Relay that page; do not retry around the refusal, and do not
+ask anyone for a credential.
+
 Every domain input is normalized server-side; a malformed domain returns a clean
 tool error, never a crash. A `temperror`-shaped tool error means a DNS lookup
-timed out — retry, never report it as a verdict.
+timed out — retry, never report it as a verdict. A domain the token's account
+does not verifiably own returns the same "not found" as a domain that does not
+exist — that is deliberate, and not something to probe around.
 
 ## Workflow
 
@@ -214,9 +236,14 @@ enforcement **readiness** verdict from them — the 30-day alignment evidence th
 session cannot gather. That is what `start_monitoring_signup` hands off to; none
 of it happens from a one-off scan.
 
+Once the domain is verified and the owner has given their agent a token, the
+alerts and the readiness verdict are readable through `get_alerts` and
+`get_readiness` — see playbook 5. That is how a later session picks the domain
+back up without re-deriving anything.
+
 ## Playbooks
 
-Four read-orders over the tool surface. Each is an evidence sequence: run the
+Five read-orders over the tool surface. Each is an evidence sequence: run the
 step, read what it rules in or out, and stop when the evidence answers the
 question. **Report what the tools returned.** Do not estimate how much mail is
 affected, how likely a problem is, or what a fix will improve by — DNS Doctor
@@ -309,6 +336,41 @@ Work the evidence in this order and say explicitly what each step rules out.
 6. After publishing, `check_record` per record (`mx`, `spf`, `dmarc`) to confirm
    each is live and in sync. Passing `rua_email` on the build puts spoof
    attempts against the parked domain into aggregate reports.
+
+### 5. The operate loop — watching a monitored domain over time
+
+This is the sequence for a domain that is already (or is about to be) under
+continuous monitoring. It needs an API token for steps 3–5; the owner mints one
+at `/dashboard/settings` and gives it to their agent's environment, never to you
+in a message.
+
+1. **Enroll.** `start_monitoring_signup` and hand the human the `signup_url`.
+   You are proposing, not committing them; the call creates nothing.
+2. **Verify.** They sign in and publish the TXT ownership record their dashboard
+   shows them. Daily monitoring starts only once that verification passes —
+   until then there is nothing to read, and `get_alerts` / `get_readiness` will
+   not find the domain.
+3. **Watch.** `get_alerts` on a cadence that suits the human, filtered by
+   `domain` or `type` when they only care about one. Page down with `before`
+   until `next_before` is `null` before advancing `since`, and de-duplicate on
+   `id`. Report what the log says; the human clears it.
+4. **Check readiness before proposing enforcement.** `get_readiness` for the
+   domain. `ready: false` means the `blockers` are the answer — an unaligned
+   source, too little evidence, an empty window. Say which, and say what would
+   clear it.
+5. **Propose.** When readiness allows it, `build_dmarc_upgrade` produces the
+   validated record. `get_readiness`'s own `next_record` is the same engine
+   output for the next step. Either way: present it verbatim, never compose one,
+   and never treat a `null` record as a gap to fill.
+6. **The human approves and applies.** DNS Doctor never writes DNS. After they
+   publish, `check_record` with `kind: dmarc` confirms it landed and is in sync.
+7. **Re-scan and re-read.** `scan_domain` confirms the verdict flipped;
+   the next `get_readiness` window shows the effect of the change over time.
+   Then back to step 3 — the loop is the product.
+
+Two things this loop must not do: acknowledge alerts on the human's behalf
+(there is no such tool, deliberately), and treat a quiet `get_alerts` page as
+proof a domain is healthy when you skipped a page to get there.
 
 ## Learn more
 
