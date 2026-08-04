@@ -26,7 +26,7 @@ claude-plugin/
 └── README.md
 ```
 
-## Tools it adds
+## Tools
 
 | Tool | Does |
 |---|---|
@@ -80,6 +80,18 @@ Add a custom connector with:
 - **URL:** `https://dnsdoctor.dev/mcp`
 - **Transport:** Streamable HTTP
 - **Auth:** none (anonymous) — or a Bearer token (below)
+
+### Any MCP client (standard config)
+
+```json
+{
+  "mcpServers": {
+    "dns-doctor": {
+      "url": "https://dnsdoctor.dev/mcp"
+    }
+  }
+}
+```
 
 ## Optional: API token for monitored domains
 
