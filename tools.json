@@ -494,7 +494,7 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "Return a sign-up link to give to the HUMAN who owns a domain, so they can start monitoring it themselves. Nothing is created and no email is sent by this call: the returned signup_url opens a page that explains monitoring and asks them to sign in with their own email address; the domain is carried over to their dashboard, already filled in, only after that, and monitoring itself starts once they prove ownership with a TXT record. Hand them the URL and relay `message` \u2014 never sign in on their behalf.",
+    "description": "Return a sign-up link to give to the HUMAN who owns a domain, so they can start monitoring it themselves. Nothing is created and no email is sent by this call: the returned signup_url opens a page that explains monitoring and asks them to sign in there themselves; the domain is carried over to their dashboard, already filled in, only after that, and monitoring itself starts once they prove ownership with a TXT record. Print the returned signup_url verbatim as a clickable markdown link on its own line \u2014 never paraphrase, shorten, or describe it without printing it \u2014 and relay `message`; never sign in on their behalf.",
     "inputSchema": {
       "properties": {
         "domain": {

@@ -213,8 +213,11 @@ Moving to `p=reject` safely needs roughly 30 days of RUA (aggregate report)
 evidence that every legitimate sender is aligned — which a session-bound assistant
 cannot watch. Apply fixes only after the domain's owner approves them. If the user
 wants the domain watched continuously (RUA dashboard + alerts), call
-`start_monitoring_signup` and **give the human the `signup_url` it returns**. The
-call sends no email and creates nothing — you are proposing, not committing them.
+`start_monitoring_signup` and **give the human the `signup_url` it returns —
+printed verbatim as a clickable markdown link on its own line; never paraphrase,
+shorten, or describe it without printing it** (a link described but not printed
+never reaches them). The call sends no email and creates nothing — you are
+proposing, not committing them.
 
 **Never ask a human for their email address to pass to us, and never invent one.**
 Hand over the link and let them sign in on our page themselves — the page offers
@@ -315,7 +318,9 @@ Work the evidence in this order and say explicitly what each step rules out.
    shows the per-source aligned share. One report is one window from one
    receiver — useful evidence, not a readiness verdict.
 6. For the 30-day watch, `start_monitoring_signup` and hand over the
-   `signup_url`. That is what supplies the readiness verdict this step needs.
+   `signup_url` — printed verbatim as a clickable markdown link on its own
+   line, never merely described. That is what supplies the readiness verdict
+   this step needs.
 
 ### 4. Parked-domain sweep (MSP / multi-domain)
 
@@ -344,8 +349,10 @@ continuous monitoring. It needs an API token for steps 3–5; the owner mints on
 at `/dashboard/settings` and gives it to their agent's environment, never to you
 in a message.
 
-1. **Enroll.** `start_monitoring_signup` and hand the human the `signup_url`.
-   You are proposing, not committing them; the call creates nothing.
+1. **Enroll.** `start_monitoring_signup` and hand the human the `signup_url`,
+   printed verbatim as a clickable markdown link on its own line — never
+   described without being printed. You are proposing, not committing them; the
+   call creates nothing.
 2. **Verify.** They sign in and publish the TXT ownership record their dashboard
    shows them. Daily monitoring starts only once that verification passes —
    until then there is nothing to read, and `get_alerts` / `get_readiness` will
