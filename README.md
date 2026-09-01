@@ -1,7 +1,8 @@
 # DNS Doctor — Claude Code plugin & DNS skill (DMARC, SPF, DKIM)
 
-Diagnose and fix a domain's email authentication (SPF, DMARC, DKIM, MX, blacklist,
-domain/SSL expiry) from inside Claude. This plugin bundles the DNS Doctor **skill**
+Scan, fix and verify a domain's DNS — email authentication (SPF, DMARC, DKIM)
+first, plus multi-region propagation, SPF include supply-chain audits, MX, DNS
+health, blacklists and domain/SSL expiry — from inside Claude. This plugin bundles the DNS Doctor **skill**
 (the scan → diagnose → fix workflow) and an **MCP server config** pointing at the
 hosted DNS Doctor tools.
 
