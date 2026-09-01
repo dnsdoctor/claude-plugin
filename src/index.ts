@@ -61,6 +61,10 @@ const ROUTES: Record<string, Route> = {
     field: "file",
   },
   check_record: { kind: "json", path: "/api/tools/check-record" },
+  check_propagation: {
+    kind: "json",
+    path: "/api/tools/propagation-check",
+  },
   check_reverse_dns: { kind: "json", path: "/api/tools/reverse-dns-check" },
   audit_spf_includes: { kind: "json", path: "/api/tools/spf-audit" },
   build_parked_domain_records: {

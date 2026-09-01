@@ -127,6 +127,57 @@
       "openWorldHint": true,
       "readOnlyHint": true
     },
+    "description": "Check whether a DNS change has propagated GLOBALLY: six vantage points (five owner-run probes on separate continents plus this server's own resolver) each read the same name through several resolvers, and the grid plus a deterministic verdict comes back. Call it after the human publishes a record \u2014 you have ONE network vantage point, and a record that resolves for you can still be missing elsewhere. `name` is the exact name (www. is not stripped, _dmarc.example.com works), `record_type` is A|AAAA|CNAME|MX|TXT|NS, and the optional `expected_value` turns each cell into match or mismatch instead of agreement-only. Observation only: no record is ever composed here. A cell that did not answer is `unavailable`, which is NOT a negative result, and when fewer than three vantage points were reached the verdict downgrades to `unknown` \u2014 report vantage_reached of vantage_total rather than calling a name converged on partial coverage.",
+    "inputSchema": {
+      "properties": {
+        "expected_value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional value the record should now hold, e.g. '1.2.3.4' or the new DMARC record text. Supply it and each cell is reported as match or mismatch against it; omit it and the check only reports whether the vantage points agree with each other.",
+          "title": "Expected Value"
+        },
+        "name": {
+          "description": "The exact DNS name to look up, e.g. example.com, www.example.com or _dmarc.example.com. It is used as given \u2014 a leading www. is NOT stripped and underscore labels are kept \u2014 so pass the name the record is actually published at, not the registrable domain.",
+          "title": "Name",
+          "type": "string"
+        },
+        "record_type": {
+          "default": "A",
+          "description": "The record type to read at that exact name (default A). SPF and DMARC records are TXT \u2014 pass TXT with the right name rather than expecting a derived query name.",
+          "enum": [
+            "A",
+            "AAAA",
+            "CNAME",
+            "MX",
+            "TXT",
+            "NS"
+          ],
+          "title": "Record Type",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "check_propagationArguments",
+      "type": "object"
+    },
+    "name": "check_propagation"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true
+    },
     "description": "Check whether a DNS change has landed: reads the record from the domain's OWN nameservers (cache-free) and from two public caching resolvers, and reports whether they agree. `kind` is one of spf|dmarc|txt|mx|cname|a|aaaa \u2014 pass the kind, not a query name: `dmarc` reads TXT at _dmarc.<domain> and `spf` reads apex TXT, each filtered to the matching record. `host` prepends a label (txt, cname, a and aaaa only). Empty values mean the record is genuinely absent. When in_sync is false, max_wait_seconds is the largest remaining cached TTL \u2014 the wait before those resolvers refresh. This samples two resolvers, so never describe it as worldwide or as propagation coverage.",
     "inputSchema": {
       "properties": {

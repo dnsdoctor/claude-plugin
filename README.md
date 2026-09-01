@@ -18,7 +18,7 @@ claude-plugin/
 ├── .mcp.json                    # MCP server: https://dnsdoctor.dev/mcp (HTTP)
 ├── skills/dns-doctor/SKILL.md   # the scan → diagnose → fix workflow
 ├── src/                         # @dnsdoctor/mcp — the local stdio MCP server
-├── tools.json                   # the 15 tool definitions (generated, never hand-edited)
+├── tools.json                   # the 16 tool definitions (generated, never hand-edited)
 ├── instructions.txt             # the server's own `initialize` guidance (generated)
 ├── tests/                       # vitest suite for the stdio server
 ├── package.json  tsconfig.json  # npm package + build
@@ -39,6 +39,7 @@ claude-plugin/
 | `check_dkim_selector` | Look up one DKIM selector and check the key. |
 | `parse_dmarc_report` | Parse an aggregate (RUA) report file into rows. |
 | `check_record` | Read any DNS record type for a name. |
+| `check_propagation` | Whether a DNS change has gone global: six vantage points (five owner-run probes plus the server's own resolver) read the same name, returning the grid plus a deterministic verdict. Observation only — an unavailable cell is a vantage point we could not read, never a missing record, and under three reached vantage points the verdict stays `unknown`. |
 | `check_reverse_dns` | PTR / forward-confirmed reverse DNS for an IP. |
 | `audit_spf_includes` | The SPF include/redirect tree — who can transitively send as the domain, with typed findings (broken include, confirmed-unregistered include, expiring registration, nested `+all`). Analysis only; no SPF fix record. |
 | `build_parked_domain_records` | The Null MX + `v=spf1 -all` + `p=reject; np=reject` hardening pack for a domain that sends no mail. The server re-checks DNS itself and refuses when it finds evidence of mail. |
@@ -51,7 +52,7 @@ they appear in the tool list on both transports, and without a valid token the
 call is refused with the page the account owner mints one on. Over the hosted
 HTTP transport the `dnsdoctor://domains` resource (your monitored domains) is
 likewise always listed and refused without a token; the local stdio server
-registers the tools only — no resource. Anonymous access covers all thirteen
+registers the tools only — no resource. Anonymous access covers all fourteen
 diagnosis tools, which is enough for a one-off diagnosis either way.
 
 ## Install
@@ -121,7 +122,7 @@ their latest per-check statuses).
 
 ### Transport
 
-Two supported public transports, same 15 tools:
+Two supported public transports, same 16 tools:
 
 - **Hosted streamable HTTP** — `https://dnsdoctor.dev/mcp`, wired in this
   plugin's `.mcp.json`. No install, no keys.

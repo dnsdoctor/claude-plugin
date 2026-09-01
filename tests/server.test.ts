@@ -62,7 +62,7 @@ describe("tools/list", () => {
   });
 
   it("exposes the fifteen hosted tools", () => {
-    expect(listTools()).toHaveLength(15);
+    expect(listTools()).toHaveLength(16);
   });
 
   it("routes every fixture tool", () => {
