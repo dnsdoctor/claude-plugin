@@ -3,6 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   ApiError,
   DEFAULT_API_BASE,
+  PAYMENT_REQUIRED_MESSAGE,
   RATE_LIMITED_MESSAGE,
   TRANSIENT_SUFFIX,
   apiBase,
@@ -169,6 +170,14 @@ describe("error mapping", () => {
     fetchMock.mockResolvedValue(jsonResponse(429, {}));
     const error = await postJson("/api/v1/scan", { domain: "example.com" }).catch((e) => e);
     expect(error.message).toBe(RATE_LIMITED_MESSAGE);
+    expect(error.transient).toBe(true);
+  });
+
+  it("maps the x402 402 to the rate limit it is, transient and named", async () => {
+    fetchMock.mockResolvedValue(new Response("{}", { status: 402 }));
+    const error = await postJson("/api/v1/scan", { domain: "example.com" }).catch((e) => e);
+    expect(error.message).toBe(PAYMENT_REQUIRED_MESSAGE);
+    expect(error.status).toBe(402);
     expect(error.transient).toBe(true);
   });
 

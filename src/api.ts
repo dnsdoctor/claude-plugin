@@ -25,6 +25,15 @@ export const TRANSIENT_SUFFIX = "retry; never report this as a verdict";
 
 export const RATE_LIMITED_MESSAGE = "rate limited — slow down and retry";
 
+/**
+ * A 402 is the same exhausted per-CALLER budget as a 429, offered as a paid
+ * burst lane (D104) this client deliberately does not pay: it holds no wallet
+ * and never will. So it reads as the rate limit it is — transient, retry — and
+ * the offer is named rather than surfaced as an opaque HTTP code.
+ */
+export const PAYMENT_REQUIRED_MESSAGE =
+  "rate limited — a paid burst lane was offered; this client does not pay, so slow down and retry";
+
 /** Error raised for any non-2xx response or transport fault. */
 export class ApiError extends Error {
   readonly status: number | null;
@@ -107,6 +116,11 @@ async function toApiError(response: Response): Promise<ApiError> {
     // API's own detail (which domain, which budget) rides along verbatim.
     const message = detail ? `${RATE_LIMITED_MESSAGE} (${detail})` : RATE_LIMITED_MESSAGE;
     return new ApiError(message, status, true);
+  }
+  if (status === 402) {
+    // The x402 offer rides in the `PAYMENT-REQUIRED` header and the body carries
+    // no `detail`, so there is nothing to relay verbatim here — only the reason.
+    return new ApiError(PAYMENT_REQUIRED_MESSAGE, status, true);
   }
   if (status === 503) {
     return new ApiError(
