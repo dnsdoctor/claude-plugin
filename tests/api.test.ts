@@ -92,7 +92,7 @@ describe("relay", () => {
   it("returns the parsed body untouched", async () => {
     const body = {
       domain: "example.com",
-      record: "v=DMARC1; p=quarantine; pct=25; rua=mailto:x@example.com",
+      record: "v=DMARC1; p=quarantine; np=reject; rua=mailto:x@example.com",
       policy: "quarantine",
       nested: { keep: [1, 2, 3] },
     };

@@ -1,6 +1,6 @@
 {
   "name": "@dnsdoctor/mcp",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "mcpName": "dev.dnsdoctor/dns-doctor",
   "description": "Thin stdio MCP server for DNS Doctor \u2014 scan, fix and verify a domain's DNS: SPF, DMARC, DKIM, multi-region propagation, MX, DNS health, blacklists and expiry, over the public DNS Doctor REST API.",
   "license": "Apache-2.0",

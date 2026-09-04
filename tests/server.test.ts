@@ -96,7 +96,7 @@ describe("handlers", () => {
   it("scan_domain posts to /api/v1/scan and relays the body untouched", async () => {
     const report = {
       domain: "example.com",
-      checks: [{ name: "dmarc", status: "fail", fix_record: "v=DMARC1; p=quarantine; pct=25" }],
+      checks: [{ name: "dmarc", status: "fail", fix_record: "v=DMARC1; p=quarantine; np=reject" }],
       next_steps: { summary: "…" },
     };
     fetchMock.mockResolvedValue(jsonResponse(200, report));

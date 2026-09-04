@@ -33,7 +33,7 @@ claude-plugin/
 |---|---|
 | `scan_domain` | Fresh scan of a domain; full report. |
 | `get_report` | Persisted report (scans once if none exists). |
-| `build_dmarc_upgrade` | A validated DMARC enforcement record — `p=reject` only when the server-derived alignment gate passes. |
+| `build_dmarc_upgrade` | A validated DMARC enforcement record, capped at `p=quarantine` and returned only when the server-derived alignment gate passes; without that evidence the answer is reporting-first and no record is returned. `p=reject` comes from the readiness engine's aggregate-report evidence, never from a scan. |
 | `count_spf_lookups` | The SPF DNS-lookup count against the RFC limit of 10. |
 | `validate_dmarc_record` | Parse and validate a DMARC record, tag by tag. |
 | `generate_dmarc_record` | Build a DMARC record from a policy + reporting address. |
@@ -171,11 +171,11 @@ client has no tools and none of its safety guidance.
 > Domain expires in 240 days.
 >
 > **Claude** (`build_dmarc_upgrade` → `example.com`): SPF is aligned and DKIM is
-> present, so enforcement to `p=reject` is safe. Publish this exact TXT record at
-> `_dmarc.example.com` — **paste it verbatim, don't edit it**:
+> present, so the recommendation reaches its ceiling, `p=quarantine`. Publish this
+> exact TXT record at `_dmarc.example.com` — **paste it verbatim, don't edit it**:
 >
 > ```
-> v=DMARC1; p=reject; rua=mailto:dmarc@example.com; adkim=r; aspf=r
+> v=DMARC1; p=quarantine; rua=mailto:dmarc@example.com; adkim=r; aspf=r; np=reject
 > ```
 >
 > Apply it in your DNS host once you've confirmed it's approved, then ask me to

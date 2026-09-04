@@ -30,7 +30,7 @@
       "openWorldHint": true,
       "readOnlyHint": false
     },
-    "description": "Return a validated DMARC enforcement-upgrade record for a domain. The alignment gate (whether p=reject is safe) is derived server-side from a scan \u2014 a caller can never assert alignment. `record` is null when there is no honest upgrade to offer (the domain does not exist; the DMARC lookup itself hit NXDOMAIN while the existence probe did not resolve; the DMARC lookup temp-failed; or the domain already applies a policy at least as strong as this scan justifies): relay `rationale` and never compose a record to fill the gap. A returned record also carries np=reject (the DMARCbis tag covering non-existent subdomains, which can have no legitimate aligned mail) unless the domain already publishes an np tag, which is preserved as-is. Present a returned record verbatim; a human must approve before publishing.",
+    "description": "Return a validated DMARC enforcement-upgrade record for a domain. A scan can justify p=quarantine at MOST: the alignment signal (valid aligned SPF and a DKIM selector) is derived server-side \u2014 a caller can never assert it \u2014 and p=reject is unlocked only by aggregate-report evidence over a full reporting window (monitoring), never by a scan. `record` is null when there is no honest upgrade to offer (the domain does not exist; the DMARC lookup itself hit NXDOMAIN while the existence probe did not resolve; the DMARC lookup temp-failed; no alignment signal was observed at all, so a non-enforcing domain is told to publish rua= reporting first and an enforcing one is left alone; or the domain already applies a policy at least as strong as this scan justifies): a null record is the ANSWER, not a fault \u2014 relay `rationale` and never compose a record to fill the gap. A returned record also carries np=reject (the DMARCbis tag covering non-existent subdomains, which can have no legitimate aligned mail) unless the domain already publishes an np tag, which is preserved as-is. Present a returned record verbatim; a human must approve before publishing.",
     "inputSchema": {
       "properties": {
         "domain": {
@@ -521,7 +521,7 @@
       "openWorldHint": true,
       "readOnlyHint": false
     },
-    "description": "Force a fresh scan of a domain and return its full report: seven deterministic checks \u2014 SPF, DKIM, DMARC, MX, DNS hardening, domain/TLS expiry and blacklist listing \u2014 each with a status (pass/warn/fail/info/temperror), the observed record, and a fixengine-generated fix_record where one exists. Explanations are cache-first. A repeat scan of the same domain within a minute reuses the stored report. Use this when you need current state; use get_report when a recent cached answer will do.",
+    "description": "Force a fresh scan of a domain and return its full report: seven deterministic checks \u2014 SPF, DKIM, DMARC, MX, DNS hardening, domain/TLS expiry and blacklist listing \u2014 each with a status (pass/warn/fail/info/temperror), the observed record, and a fixengine-generated fix_record where one exists. Explanations are cache-first. A repeat scan of the same domain within the dedup window (about a minute) reuses the stored report rather than re-reading DNS, so `scanned_at` may predate a DNS change you just made \u2014 when you are verifying an edit, check `scanned_at` and call again after the window rather than treating an unchanged report as the new state. Use this when you need current state; use get_report when a recent cached answer will do.",
     "inputSchema": {
       "properties": {
         "domain": {
@@ -569,7 +569,7 @@
       "openWorldHint": false,
       "readOnlyHint": true
     },
-    "description": "Validate a pasted DMARC record: parsed tags, level'd findings, and whether it is valid. No DNS lookup \u2014 pass the record string itself. `upgrade_record` previews a stronger policy and is capped at p=quarantine: a pasted record carries no alignment evidence, so p=reject needs a full scan (use build_dmarc_upgrade). Present any returned record verbatim.",
+    "description": "Validate a pasted DMARC record: parsed tags, level'd findings, and whether it is valid. No DNS lookup \u2014 pass the record string itself. `upgrade_record` previews a stronger policy and is capped at p=quarantine: a pasted record carries no alignment evidence, and p=reject is unlocked only by aggregate-report evidence over a full reporting window (monitoring), never by a scan. Present any returned record verbatim.",
     "inputSchema": {
       "properties": {
         "record": {
