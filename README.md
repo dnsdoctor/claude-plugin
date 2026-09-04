@@ -166,8 +166,8 @@ client has no tools and none of its safety guidance.
 > **You:** Our invoices keep landing in customers' spam. Domain is `example.com`.
 >
 > **Claude** (`scan_domain` → `example.com`): DMARC is at `p=none`, so nothing
-> enforces alignment — receivers can't tell your mail from a spoof. SPF passes with
-> 7 of 10 lookups used. DKIM: a selector was found and is valid. Not blacklisted.
+> enforces alignment — receivers can't tell your mail from a spoof. The SPF record
+> is valid, 7 of 10 lookups used. DKIM: a selector was found and is valid. Not blacklisted.
 > Domain expires in 240 days.
 >
 > **Claude** (`build_dmarc_upgrade` → `example.com`): SPF is aligned and DKIM is
