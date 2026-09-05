@@ -180,7 +180,8 @@ client has no tools and none of its safety guidance.
 >
 > Apply it in your DNS host once you've confirmed it's approved, then ask me to
 > re-scan to verify. Want the domain watched continuously with aggregate-report
-> alerts? I can send a setup link to your email.
+> alerts? Here is the setup link — open it and sign in:
+> https://dnsdoctor.dev/start?domain=example.com&ref=agent
 
 ## Learn more
 
