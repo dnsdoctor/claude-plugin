@@ -22,6 +22,27 @@ it is never an LLM guess. Your job is to run the scan, explain the findings, han
 the human the exact record, and confirm the fix — not to author DNS records
 yourself.
 
+## What this skill sends, and where
+
+Every tool call goes to one host, `https://dnsdoctor.dev` (or the local `@dnsdoctor/mcp`
+client, which calls the same public API). What leaves the machine is exactly what the user
+asked to check: a domain name, and for the focused tools a record name, an IP address, a DKIM
+selector, a pasted DMARC record, or an uploaded DMARC report. Nothing else is read or sent — no
+files, no environment beyond an optional `DNSDOCTOR_API_TOKEN`, no message contents.
+
+Two things the user should know before you scan a domain for them:
+
+- **A scan result is a public report page** at `https://dnsdoctor.dev/scan/<domain>` (the free
+  scanner is a public service, like a DNS lookup site). Do not scan a domain the user wants kept
+  private, and say so if they ask.
+- **The optional API token** (`DNSDOCTOR_API_TOKEN`) goes to dnsdoctor.dev only, as an
+  `Authorization` header, and only if the user put it in your environment; the local
+  `@dnsdoctor/mcp` client attaches it to its requests, and the server uses it for the two
+  monitoring reads (`get_alerts`, `get_readiness`) and the `dnsdoctor://domains` resource. Never
+  send any other credential, and never ask for one.
+
+DNS Doctor never changes DNS: it returns records for a human to publish.
+
 ## When to use this skill
 
 Reach for it whenever a user describes any of:
