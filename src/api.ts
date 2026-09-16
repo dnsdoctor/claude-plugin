@@ -27,7 +27,7 @@ export const RATE_LIMITED_MESSAGE = "rate limited — slow down and retry";
 
 /**
  * A 402 is the same exhausted per-CALLER budget as a 429, offered as a paid
- * burst lane (D104) this client deliberately does not pay: it holds no wallet
+ * burst lane this client deliberately does not pay: it holds no wallet
  * and never will. So it reads as the rate limit it is — transient, retry — and
  * the offer is named rather than surfaced as an opaque HTTP code.
  */
