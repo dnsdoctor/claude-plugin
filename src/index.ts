@@ -74,7 +74,7 @@ const ROUTES: Record<string, Route> = {
   lookup_registration: { kind: "json", path: "/api/tools/whois" },
   get_alerts: { kind: "query", path: "/api/v1/alerts" },
   get_readiness: { kind: "query", path: "/api/v1/readiness" },
-  // D116 linked onboarding. The domain rides the BODY (or the query) on all
+  // Linked onboarding. The domain rides the BODY (or the query) on all
   // three, never the path: this client translates nothing, and a
   // `/domains/{domain}/…` shape would need a fourth route kind to say what
   // `?domain=` already says with none.
