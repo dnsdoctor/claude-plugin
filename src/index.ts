@@ -71,8 +71,16 @@ const ROUTES: Record<string, Route> = {
     kind: "json",
     path: "/api/tools/parked-domain-records",
   },
+  lookup_registration: { kind: "json", path: "/api/tools/whois" },
   get_alerts: { kind: "query", path: "/api/v1/alerts" },
   get_readiness: { kind: "query", path: "/api/v1/readiness" },
+  // D116 linked onboarding. The domain rides the BODY (or the query) on all
+  // three, never the path: this client translates nothing, and a
+  // `/domains/{domain}/…` shape would need a fourth route kind to say what
+  // `?domain=` already says with none.
+  add_monitored_domain: { kind: "json", path: "/api/v1/domains" },
+  check_domain_verification: { kind: "json", path: "/api/v1/domains/verify" },
+  get_domain_records: { kind: "query", path: "/api/v1/domains/records" },
 };
 
 /** Default upload name when the caller supplies none — the API only reads bytes. */

@@ -1,8 +1,8 @@
 {
   "name": "@dnsdoctor/mcp",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "mcpName": "dev.dnsdoctor/dns-doctor",
-  "description": "Thin stdio MCP server for DNS Doctor \u2014 scan, fix and verify a domain's DNS: SPF, DMARC, DKIM, multi-region propagation, MX, DNS health, blacklists and expiry, over the public DNS Doctor REST API.",
+  "description": "Thin stdio MCP server for DNS Doctor — scan, fix and verify a domain's DNS: SPF, DMARC, DKIM, multi-region propagation, MX, DNS health, blacklists and expiry, over the public DNS Doctor REST API.",
   "license": "Apache-2.0",
   "author": {
     "name": "DNS Doctor",
@@ -46,6 +46,9 @@
   "devDependencies": {
     "@types/node": "^22.15.0",
     "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
+    "vitest": "4.1.11"
+  },
+  "overrides": {
+    "hono": ">=4.13.5"
   }
 }

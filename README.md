@@ -41,6 +41,7 @@ claude-plugin/
 | `parse_dmarc_report` | Parse an aggregate (RUA) report file into rows. |
 | `check_record` | Read any DNS record type for a name. |
 | `check_propagation` | Whether a DNS change has gone global: six vantage points (five owner-run probes plus the server's own resolver) read the same name, returning the grid plus a deterministic verdict. Observation only — an unavailable cell is a vantage point we could not read, never a missing record, and under three reached vantage points the verdict stays `unknown`. |
+| `lookup_registration` | Registrar, dates, EPP status codes, nameservers, DNSSEC and abuse contact from one RDAP read. Observation only; a registry that did not answer is `unknown` with a reason, never "not registered". |
 | `check_reverse_dns` | PTR / forward-confirmed reverse DNS for an IP. |
 | `audit_spf_includes` | The SPF include/redirect tree — who can transitively send as the domain, with typed findings (broken include, confirmed-unregistered include, expiring registration, nested `+all`). Analysis only; no SPF fix record. |
 | `build_parked_domain_records` | The Null MX + `v=spf1 -all` + `p=reject; np=reject` hardening pack for a domain that sends no mail. The server re-checks DNS itself and refuses when it finds evidence of mail. |
@@ -123,7 +124,7 @@ their latest per-check statuses).
 
 ### Transport
 
-Two supported public transports, same 16 tools:
+Two supported public transports, same 20 tools:
 
 - **Hosted streamable HTTP** — `https://dnsdoctor.dev/mcp`, wired in this
   plugin's `.mcp.json`. No install, no keys.
