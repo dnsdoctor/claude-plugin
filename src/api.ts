@@ -58,10 +58,11 @@ export function apiBase(): string {
  * The bearer token, when the environment carries one — sent on every request,
  * GET included.
  *
- * Most tools work anonymously and a token only raises the budget, but the two
- * monitoring reads (`get_alerts`, `get_readiness`) REQUIRE one: without it the
- * API answers 401 and its `detail` is the guidance (mint one on the dashboard),
- * which `toApiError` relays verbatim. Never prompt a human for the token here.
+ * Most tools work anonymously and a token only raises the budget, but the three
+ * monitoring reads (`get_alerts`, `get_readiness`, `get_lookalikes`) REQUIRE
+ * one: without it the API answers 401 and its `detail` is the guidance (mint
+ * one on the dashboard), which `toApiError` relays verbatim. Never prompt a
+ * human for the token here.
  */
 function authHeaders(): Record<string, string> {
   const token = process.env.DNSDOCTOR_API_TOKEN?.trim();

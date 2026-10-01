@@ -72,8 +72,10 @@ const ROUTES: Record<string, Route> = {
     path: "/api/tools/parked-domain-records",
   },
   lookup_registration: { kind: "json", path: "/api/tools/whois" },
+  check_lookalikes: { kind: "json", path: "/api/tools/lookalikes" },
   get_alerts: { kind: "query", path: "/api/v1/alerts" },
   get_readiness: { kind: "query", path: "/api/v1/readiness" },
+  get_lookalikes: { kind: "query", path: "/api/v1/lookalikes" },
   // Linked onboarding. The domain rides the BODY (or the query) on all
   // three, never the path: this client translates nothing, and a
   // `/domains/{domain}/…` shape would need a fourth route kind to say what

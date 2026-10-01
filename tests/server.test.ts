@@ -61,8 +61,8 @@ describe("tools/list", () => {
     await client.close();
   });
 
-  it("exposes the twenty hosted tools", () => {
-    expect(listTools()).toHaveLength(20);
+  it("exposes the twenty-two hosted tools", () => {
+    expect(listTools()).toHaveLength(22);
   });
 
   it("routes every fixture tool", () => {
