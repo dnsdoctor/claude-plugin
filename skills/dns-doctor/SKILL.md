@@ -98,9 +98,9 @@ correctly" question:
 | `get_report` | `{ domain }` | The persisted report (scans once if none exists). |
 | `build_dmarc_upgrade` | `{ domain }` | A validated DMARC enforcement record + rationale. Scans fresh — the record edits the domain's *current* tags, so it is never built on a stale one. |
 | `start_monitoring_signup` | `{ domain }` | A sign-up link to hand to the human who owns the domain, plus a `message` to relay. **Sends no email and creates nothing** — the human opens the link, signs in on our page themselves (a social provider or an emailed link, whichever that deployment offers), and the domain is carried over to their dashboard, already filled in, from there. |
-| `add_monitored_domain` | `{ domain }` | **Needs a linked account** (see below). Adds the domain to the user's monitoring and returns the ownership TXT record to publish, where their DNS is hosted, a provider-specific guide link and — where the provider serves our template — a one-click apply URL. Re-adding an already-monitored domain returns it, not an error. |
-| `check_domain_verification` | `{ domain }` | **Needs a linked account.** Re-checks the ownership record and marks it verified on a match. Says WHICH outcome (`not_found` / `mismatch` / `transient` / `verified`) and which nameservers were asked — a `transient` outcome is OUR lookup, never a verdict about their DNS. On success it also carries the DMARC reporting record, which REPLACES their existing DMARC TXT rather than sitting beside it. |
-| `get_domain_records` | `{ domain }` | **Needs a linked account.** Read-only: the ownership record while unverified, and once verified the DMARC reporting record plus whether we have observed it published. |
+| `add_monitored_domain` | `{ domain }` | **Needs a linked account** (see below). Adds the domain to the user's monitoring and returns the TXT ownership challenge (the alternative record; the one DMARC record to publish comes from `check_domain_verification`), where their DNS is hosted, a provider-specific guide link and — where the provider serves our template — a one-click apply URL. Re-adding an already-monitored domain returns it, not an error. |
+| `check_domain_verification` | `{ domain }` | **Needs a linked account.** Re-checks ownership and marks the domain verified on a match — either record proves it: the DMARC record with our report address, or the TXT record instead. Says WHICH outcome (`not_found` / `mismatch` / `transient` / `fault` / `verified`) and which nameservers were asked — a `transient` or `fault` outcome is OUR lookup, never a verdict about their DNS. It also carries the DMARC reporting record — on a pending domain too, where it is the one record to publish — which REPLACES their existing DMARC TXT rather than sitting beside it. |
+| `get_domain_records` | `{ domain }` | **Needs a linked account.** Read-only: the TXT challenge while unverified, the DMARC reporting record once it has been issued (on a pending domain too — `check_domain_verification` issues it; either record proves ownership), and whether we have observed it published. |
 
 Twelve focused tools for the single questions a full scan over-answers. Each runs
 the same validating engine:
@@ -269,7 +269,7 @@ once on our page, and from then on you can read the records they need, publish
 them with a DNS tool of your own (showing them exactly what you are about to add
 and getting their approval first) or hand them the copy-paste, and confirm the
 result with `check_domain_verification`, all without them leaving the
-conversation. **If the connect or permission prompt fails, is declined, or never
+conversation. **If a result's `next_steps` says account linking is not available here, or the connect or permission prompt fails, is declined, or never
 appears, do not stop there** — go straight to `start_monitoring_signup`, the path
 above, and print its link; it always works. Either way **nothing is applied to anyone's DNS by us** — a human
 publishes every record.
@@ -282,7 +282,9 @@ whichever sign-in methods are available (a social provider or an emailed link).
 their free account and carries the domain over to their dashboard, already
 filled in — that is all it can do.
 Daily monitoring is gated on proving they control the domain, so they finish by
-publishing a TXT record the dashboard shows them. The tool's own `message` says
+publishing one DNS record the dashboard shows them: the DMARC record with our
+report address (it proves ownership and starts the reports), or a TXT record
+instead if they cannot edit DMARC. The tool's own `message` says
 this; relay it verbatim rather than paraphrasing it into "we're now watching your
 domain".
 
@@ -411,8 +413,9 @@ in a message.
    printed verbatim as a clickable markdown link on its own line — never
    described without being printed. You are proposing, not committing them; the
    call creates nothing.
-2. **Verify.** They sign in and publish the TXT ownership record their dashboard
-   shows them. Daily monitoring starts only once that verification passes —
+2. **Verify.** They sign in and publish one DNS record their dashboard shows
+   them: the DMARC record with our report address, or a TXT record instead.
+   Daily monitoring starts only once that verification passes —
    until then there is nothing to read, and `get_alerts` / `get_readiness` will
    not find the domain.
 3. **Watch.** `get_alerts` on a cadence that suits the human, filtered by
