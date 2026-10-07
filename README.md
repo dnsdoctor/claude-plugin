@@ -1,4 +1,4 @@
-# DNS Doctor — Claude Code plugin & DNS skill (DMARC, SPF, DKIM)
+# DNS Doctor MCP server and Claude Code plugin — DNS skill (DMARC, SPF, DKIM)
 
 Scan, fix and verify a domain's DNS — email authentication (SPF, DMARC, DKIM)
 first, plus multi-region propagation, SPF include supply-chain audits, MX, DNS
