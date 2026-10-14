@@ -55,7 +55,7 @@ export function toolNames(): string[] {
  * The in-band guidance the hosted server sends in `initialize`, shipped verbatim.
  *
  * Claude Code users read the same rules from the bundled SKILL.md; every OTHER
- * host running `npx -y @dnsdoctor/mcp` reads them only here. Dropping them would
+ * host running this stdio client reads them only here. Dropping them would
  * leave an agent with no `temperror`-is-not-a-failure rule, no
  * `not_registered`-is-not-health rule, no records-verbatim rule and no
  * SPF-is-diagnose-only rule — the product's safety contract, not decoration.

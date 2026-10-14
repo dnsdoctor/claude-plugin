@@ -130,7 +130,7 @@ Two supported public transports, same 22 tools:
 
 - **Hosted streamable HTTP** — `https://dnsdoctor.dev/mcp`, wired in this
   plugin's `.mcp.json`. No install, no keys.
-- **Local stdio** — `npx -y @dnsdoctor/mcp`. A thin server that runs on your
+- **Local stdio** — `npx -y @dnsdoctor/mcp@1.10.3`. A thin server that runs on your
   machine and calls the public DNS Doctor REST API; it holds no diagnosis logic
   of its own and relays every record string verbatim.
 
@@ -139,7 +139,7 @@ Two supported public transports, same 22 tools:
   "mcpServers": {
     "dns-doctor": {
       "command": "npx",
-      "args": ["-y", "@dnsdoctor/mcp"],
+      "args": ["-y", "@dnsdoctor/mcp@1.10.3"],
       "env": { "DNSDOCTOR_API_TOKEN": "dnsd_YOUR_TOKEN" }
     }
   }

@@ -8,6 +8,8 @@
   },
   "homepage": "https://dnsdoctor.dev/methodology",
   "repository": "https://github.com/dnsdoctor/claude-plugin",
+  "icon": "./assets/icon.svg",
+  "privacyPolicyUrl": "https://dnsdoctor.dev/privacy",
   "license": "Apache-2.0",
   "keywords": [
     "dns",

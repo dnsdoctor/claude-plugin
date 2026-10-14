@@ -64,7 +64,7 @@ The tools come from the DNS Doctor MCP server. Two ways to reach it:
 - **Streamable HTTP (default, no setup):** `https://dnsdoctor.dev/mcp` — anonymous
   access exposes all the scanner tools. This plugin's `.mcp.json` already points
   here.
-- **Local stdio:** `npx -y @dnsdoctor/mcp` — the same 22 tools, run as a local
+- **Local stdio:** `npx -y @dnsdoctor/mcp@1.10.3` — the same 22 tools, run as a local
   process that calls the public DNS Doctor REST API. Use it when your client
   prefers stdio, or when you want the server under your own supervision. Set
   `DNSDOCTOR_API_TOKEN` in its environment to use a token (optional for the
