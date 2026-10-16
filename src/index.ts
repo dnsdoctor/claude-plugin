@@ -83,6 +83,11 @@ const ROUTES: Record<string, Route> = {
   add_monitored_domain: { kind: "json", path: "/api/v1/domains" },
   check_domain_verification: { kind: "json", path: "/api/v1/domains/verify" },
   get_domain_records: { kind: "query", path: "/api/v1/domains/records" },
+  // Email test: start takes no arguments (an empty body); the read is a GET.
+  start_email_test: { kind: "json", path: "/api/tools/email-test" },
+  get_email_test: { kind: "query", path: "/api/tools/email-test" },
+  // The linked account's email-test history (token, monitoring:read).
+  list_email_tests: { kind: "query", path: "/api/v1/email-tests" },
 };
 
 /** Default upload name when the caller supplies none — the API only reads bytes. */
