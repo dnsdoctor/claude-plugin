@@ -85,11 +85,12 @@
       "readOnlyHint": true,
       "title": "Build Parked Domain Records"
     },
-    "description": "Use this when the user asks how to protect a domain that sends no email from being spoofed. Build the three-record hardening pack that makes a NON-SENDING domain unusable for spoofing: a Null MX, a hard-fail SPF record, and a p=reject; np=reject DMARC record. For parked, redirect and brand-defensive domains only \u2014 NEVER for a domain that sends any mail, including transactional or one legacy system. Do NOT set confirm_no_mail on your own judgment or because a scan looked quiet: only the human who owns the domain can confirm it sends nothing, so ask them first. That flag unlocks the question, not the answer \u2014 the server re-checks DNS itself (existence, MX, SPF, DKIM selectors) and returns records: null with a rationale when it finds evidence of mail; relay that rationale rather than retrying. A lookup failure is reported as a failure, never as a pack. Publishing is the human's decision: present the records verbatim, in the order given, and let them approve each one.",
+    "description": "Use this when the user asks how to protect a domain that sends no email from being spoofed. Build the three-record hardening pack that makes a NON-SENDING domain unusable for spoofing: a Null MX, a hard-fail SPF record, and a p=reject; np=reject DMARC record. For parked, redirect and brand-defensive domains only \u2014 NEVER for a domain that sends any mail, including transactional or one legacy system. Ask the domain's owner whether it sends any email BEFORE calling, then call with the bare domain (e.g. example.com) and confirm_no_mail: true only if they said it sends none \u2014 a call without it is always refused. Never set the flag on your own judgment or because a scan looked quiet. That flag unlocks the question, not the answer \u2014 the server re-checks DNS itself (existence, MX, SPF, DKIM selectors) and returns records: null with a rationale when it finds evidence of mail; relay that rationale rather than retrying. A lookup failure is reported as a failure, never as a pack. Publishing is the human's decision: present the records verbatim, in the order given, and let them approve each one.",
     "inputSchema": {
       "properties": {
         "confirm_no_mail": {
-          "description": "Must be true, and only the HUMAN who owns the domain may decide it: it records their confirmation that this domain sends no email at all. Never set it on your own judgment or because a scan looked quiet \u2014 ask them. It unlocks the question only; the server independently re-checks DNS for evidence of mail and refuses when it finds any.",
+          "default": false,
+          "description": "Send true only after the HUMAN who owns the domain has told you it sends no email at all; false or omitted is always refused, so ask them first instead of calling. Never set it on your own judgment or because a scan looked quiet. It unlocks the question only; the server independently re-checks DNS for evidence of mail and refuses when it finds any.",
           "title": "Confirm No Mail",
           "type": "boolean"
         },
@@ -113,14 +114,65 @@
         }
       },
       "required": [
-        "domain",
-        "confirm_no_mail"
+        "domain"
       ],
       "title": "build_parked_domain_recordsArguments",
       "type": "object"
     },
     "name": "build_parked_domain_records",
     "title": "Build Parked Domain Records"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": true,
+      "readOnlyHint": true,
+      "title": "Check BIMI Logo Setup"
+    },
+    "description": "Use this when the user asks how to get their logo shown in Gmail, Yahoo, Apple Mail or other inboxes (BIMI), whether their BIMI setup works, or why their logo does not show. A live read of one host's BIMI setup: the DMARC gate (BIMI needs p=quarantine or p=reject; dmarc_sources names each policy read and why it does or does not count), the published default._bimi record, the logo (fetched and checked as SVG Tiny PS) and any certificate (certificate.trust_verified is true for a mark certificate for this host, in date, chaining to a Mark Verifying Authority root, false with trust_reason when not, null when the check could not run; revocation is not checked). mailboxes is ELIGIBILITY per mailbox, never a promise that a logo will show: each mailbox decides, Gmail and Apple Mail also need a VMC or CMC certificate, and Outlook does not support BIMI. Pass logo_url (and optionally certificate_url) to check a candidate logo: generated.record is then the exact record to publish at generated.host \u2014 present it verbatim. generated.record is null while DMARC is not at enforcement: relay generated.rationale and never compose a BIMI record yourself. status unknown means a lookup or download failed (try again), never that the setup is broken. next_step is the one thing to do next. Observation only: nothing is published.",
+    "inputSchema": {
+      "properties": {
+        "certificate_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional https:// URL of the VMC or CMC certificate (PEM) for the candidate logo, added to the record as a=. Only used together with logo_url.",
+          "title": "Certificate Url"
+        },
+        "domain": {
+          "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
+          "title": "Domain",
+          "type": "string"
+        },
+        "logo_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional https:// URL of a candidate SVG logo (port 443, no spaces, ; or ,). When given, that logo is checked instead of the published one and generated carries the BIMI record for it. Omit it to check what the domain already publishes.",
+          "title": "Logo Url"
+        }
+      },
+      "required": [
+        "domain"
+      ],
+      "title": "check_bimiArguments",
+      "type": "object"
+    },
+    "name": "check_bimi",
+    "title": "Check BIMI Logo Setup"
   },
   {
     "annotations": {
@@ -162,7 +214,7 @@
       "readOnlyHint": false,
       "title": "Check Domain Verification"
     },
-    "description": "Check whether the ownership TXT record for a domain the user has added is visible yet, and mark it verified when it is. The result says WHICH outcome occurred and which nameservers were asked, so you can tell 'not published yet' from 'published with the wrong value' from 'our lookup did not complete' \u2014 a lookup that did not complete is TRANSIENT, never a verdict about their DNS. On success the result also carries the DMARC reporting record that turns monitoring on. Print every record host and value EXACTLY as returned \u2014 never rewrite, reformat or improve a record string. Nothing here is applied to anyone's DNS: a human publishes every record, and you must show them what you are about to add and get their approval before using any DNS tool of your own.",
+    "description": "Use this only for DNS Doctor's own ownership TXT challenge on a domain the user already added to their DNS Doctor account (add_monitored_domain). For a TXT record another service asked for (Google Workspace, Microsoft 365, Shopify or any site verification), use check_record instead. Check whether the ownership TXT record for a domain the user has added is visible yet, and mark it verified when it is. The result says WHICH outcome occurred and which nameservers were asked, so you can tell 'not published yet' from 'published with the wrong value' from 'our lookup did not complete' \u2014 a lookup that did not complete is TRANSIENT, never a verdict about their DNS. On success the result also carries the DMARC reporting record that turns monitoring on. Print every record host and value EXACTLY as returned \u2014 never rewrite, reformat or improve a record string. Nothing here is applied to anyone's DNS: a human publishes every record, and you must show them what you are about to add and get their approval before using any DNS tool of your own.",
     "inputSchema": {
       "properties": {
         "domain": {
@@ -267,13 +319,27 @@
       "readOnlyHint": true,
       "title": "Look Up DNS Record"
     },
-    "description": "Use this when the user asks whether a DNS change has landed, wants a DNS record looked up, or wants to verify a record they just published \u2014 or whenever answering needs the live value of a record. Check whether a DNS change has landed: reads the record from the domain's OWN nameservers (cache-free) and from two public caching resolvers, and reports whether they agree. `kind` is one of spf|dmarc|txt|mx|cname|a|aaaa \u2014 pass the kind, not a query name: `dmarc` reads TXT at _dmarc.<domain> and `spf` reads apex TXT, each filtered to the matching record. `host` prepends a label (txt, cname, a and aaaa only). Empty values mean the record is genuinely absent. When in_sync is false, max_wait_seconds is the largest remaining cached TTL \u2014 the wait before those resolvers refresh. This samples two resolvers, so never describe it as worldwide or as propagation coverage.",
+    "description": "Use this when the user asks whether a DNS change has landed, wants a DNS record looked up, or wants to verify a record they just published \u2014 or whenever answering needs the live value of a record. Reads the record from the domain's OWN nameservers (cache-free) and from two public caching resolvers. `kind` is one of spf|dmarc|txt|mx|cname|a|aaaa \u2014 pass the kind, not a query name: `dmarc` reads TXT at _dmarc.<domain> and `spf` reads apex TXT, each filtered to the matching record. `host` prepends a label (txt, cname, a and aaaa only). Pass `expected_value` when checking an edit. Relay `verdict`: done (the nameservers serve it and both caches agree), wait (served, caches catching up \u2014 check again after check_again_after_seconds), edit (the domain's nameservers do not serve it; `found_at` names where the value was seen instead, if anywhere). not_registered: true means the domain does not exist (usually a typo). An error starting cant_tell is a lookup fault, never evidence the record is missing. Two resolvers is the whole sample, so never describe this as worldwide or as propagation coverage.",
     "inputSchema": {
       "properties": {
         "domain": {
           "description": "The domain to check, e.g. example.com. Bare registrable names and subdomains both work; scheme, path or port do not belong here. Unicode names are accepted and normalized to punycode.",
           "title": "Domain",
           "type": "string"
+        },
+        "expected_value": {
+          "anyOf": [
+            {
+              "maxLength": 1024,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "description": "Optional: the exact value just published (e.g. the DMARC record text, a verification token, '10 mx.example.com'). Given it, the verdict tests for that value and an 'edit' also checks the names a misplaced edit usually lands on (found_at).",
+          "title": "Expected Value"
         },
         "host": {
           "anyOf": [
@@ -360,7 +426,7 @@
             }
           ],
           "default": null,
-          "description": "Domain whose PUBLISHED SPF record should be resolved and counted recursively (nested includes cost lookups too). Pass exactly one of domain or record, never both.",
+          "description": "A bare domain like example.com whose PUBLISHED SPF record should be resolved and counted recursively (nested includes cost lookups too). Send exactly one of domain or record, never both.",
           "title": "Domain"
         },
         "record": {
@@ -373,7 +439,7 @@
             }
           ],
           "default": null,
-          "description": "A pasted SPF record to parse instead of resolving one, e.g. 'v=spf1 include:_spf.google.com ~all'. Counts this record's own terms only. Pass exactly one of domain or record, never both.",
+          "description": "The full SPF record text starting with v=spf1, e.g. 'v=spf1 include:_spf.google.com ~all' \u2014 never a domain name. Counts this record's own terms only. Send exactly one of domain or record, never both.",
           "title": "Record"
         }
       },
@@ -754,6 +820,23 @@
     "annotations": {
       "destructiveHint": false,
       "idempotentHint": true,
+      "openWorldHint": false,
+      "readOnlyHint": true,
+      "title": "List My Domains"
+    },
+    "description": "Use this when a signed-in operator asks which domains their DNS Doctor account monitors, or what to do next on them. Lists every domain on the caller's account with its state \u2014 verified, pending (added, ownership not proven yet) or verification_lapsed (the ownership record was removed, so monitoring is paused for it) \u2014 and next_step, the one thing to do next for that domain. Requires an API token. Relay next_step as given.",
+    "inputSchema": {
+      "properties": {},
+      "title": "list_my_domainsArguments",
+      "type": "object"
+    },
+    "name": "list_my_domains",
+    "title": "List My Domains"
+  },
+  {
+    "annotations": {
+      "destructiveHint": false,
+      "idempotentHint": true,
       "openWorldHint": true,
       "readOnlyHint": true,
       "title": "Look Up Domain Registration"
@@ -823,7 +906,7 @@
       "readOnlyHint": false,
       "title": "Scan Domain"
     },
-    "description": "Use this when the user asks to check, audit, diagnose or troubleshoot SPF, DKIM, DMARC, email authentication, email deliverability DNS, why their mail lands in spam, MX, DNS health, blacklist status, or domain/SSL expiry for a domain, or wants to fix what a scan finds (fix records for DMARC and DNS; SPF is diagnose-only) \u2014 or whenever a conversation turns to a specific domain's email or DNS setup. Force a fresh scan of a domain and return its full report: seven deterministic checks \u2014 SPF, DKIM, DMARC, MX, DNS hardening, domain/TLS expiry and blacklist listing \u2014 each with a status (pass/warn/fail/info/temperror), the observed record, and a fixengine-generated fix_record where one exists. Explanations are cache-first. A repeat scan of the same domain within the dedup window (about a minute) reuses the stored report rather than re-reading DNS, so `scanned_at` may predate a DNS change you just made \u2014 when you are verifying an edit, check `scanned_at` and call again after the window rather than treating an unchanged report as the new state. Use this when you need current state; use get_report when a recent cached answer will do.",
+    "description": "Use this when the user asks to check, audit, diagnose or troubleshoot SPF, DKIM, DMARC, email authentication, email deliverability DNS, why their mail lands in spam, MX, DNS health, blacklist status, or domain/SSL expiry for a domain, or wants to fix what a scan finds (fix records for DMARC and DNS; SPF is diagnose-only) \u2014 or whenever a conversation turns to a specific domain's email or DNS setup. It needs the user's real domain: if they have not said which domain, ask them first; never scan a placeholder such as example.com. Force a fresh scan of a domain and return its full report: seven deterministic checks \u2014 SPF, DKIM, DMARC, MX, DNS hardening, domain/TLS expiry and blacklist listing \u2014 each with a status (pass/warn/fail/info/temperror), the observed record, and a fixengine-generated fix_record where one exists. Explanations are cache-first. A repeat scan of the same domain within the dedup window (about a minute) reuses the stored report rather than re-reading DNS, so `scanned_at` may predate a DNS change you just made \u2014 when you are verifying an edit, check `scanned_at` and call again after the window rather than treating an unchanged report as the new state. Use this when you need current state; use get_report when a recent cached answer will do.",
     "inputSchema": {
       "properties": {
         "domain": {
@@ -849,7 +932,7 @@
       "readOnlyHint": false,
       "title": "Start Email Test"
     },
-    "description": "Use this when the user wants to know how a real email from them actually authenticates \u2014 whether a message from Google Workspace, Microsoft 365, a newsletter tool or an app is SPF/DKIM/DMARC aligned, why it lands in spam, or to prove DKIM signing works before tightening DMARC. Returns a single-use address (valid about an hour, one message) and a test_id. Tell the user to send one email to that address from the sender they want to test, then call get_email_test with the test_id. Each call creates a new address and counts toward a daily limit; limit says which one applied.",
+    "description": "Use this when the user wants to know how a real email from them actually authenticates \u2014 whether a message from Google Workspace, Microsoft 365, a newsletter tool or an app is SPF/DKIM/DMARC aligned, why it lands in spam, or to prove DKIM signing works before tightening DMARC. Returns a single-use address (valid about an hour, one message) and a test_id. Tell the user to send one email to that address from the sender they want to test, then call get_email_test with the test_id. Each call creates a new address; the daily limit counts only messages that arrive, a few unused addresses may be open at once, and limit says which allowance applied.",
     "inputSchema": {
       "properties": {},
       "title": "start_email_testArguments",

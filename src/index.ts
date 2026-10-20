@@ -73,6 +73,7 @@ const ROUTES: Record<string, Route> = {
   },
   lookup_registration: { kind: "json", path: "/api/tools/whois" },
   check_lookalikes: { kind: "json", path: "/api/tools/lookalikes" },
+  check_bimi: { kind: "json", path: "/api/tools/bimi" },
   get_alerts: { kind: "query", path: "/api/v1/alerts" },
   get_readiness: { kind: "query", path: "/api/v1/readiness" },
   get_lookalikes: { kind: "query", path: "/api/v1/lookalikes" },
@@ -88,6 +89,8 @@ const ROUTES: Record<string, Route> = {
   get_email_test: { kind: "query", path: "/api/tools/email-test" },
   // The linked account's email-test history (token, monitoring:read).
   list_email_tests: { kind: "query", path: "/api/v1/email-tests" },
+  // The account's domains with state + next step (token, monitoring:read).
+  list_my_domains: { kind: "query", path: "/api/v1/domains/mine" },
 };
 
 /** Default upload name when the caller supplies none — the API only reads bytes. */
