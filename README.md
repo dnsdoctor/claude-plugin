@@ -44,7 +44,7 @@ claude-plugin/
 | `lookup_registration` | Registrar, dates, EPP status codes, nameservers, DNSSEC and abuse contact from one RDAP read. Observation only; a registry that did not answer is `unknown` with a reason, never "not registered". |
 | `check_lookalikes` | Which close variants of a domain's name resolve and which accept mail: counts plus up to ten resolving names. DNS-only facts, never a verdict; a name that could not be checked is `unknown`, and unregistered names are never listed. |
 | `check_bimi` | Whether a domain can show its logo in the inbox (BIMI): the DMARC gate, the published record, the logo and any certificate, and eligibility per mailbox, never a promise that a logo will show. With a candidate `logo_url`, the engine's record to publish. |
-| `start_email_test`, `get_email_test` | How one real message authenticated: a single-use address the user sends one email to, then the SPF, DKIM and DMARC verdicts (every signature, alignment, the disposition the policy implies), blocklist status and a score out of 10 with every deduction itemized. Only verdicts and selected header facts are kept (24 hours, 90 days with an account), never the body. |
+| `start_email_test`, `get_email_test` | How one real message authenticated: a single-use address the user sends one email to, then the SPF, DKIM and DMARC verdicts (every signature, alignment, the disposition the policy implies), blocklist status, a score out of 10 with every deduction itemized, and per-provider estimates (Gmail, Yahoo, Outlook, Apple) of whether the message is accepted and reaches the inbox. Only verdicts and selected header facts are kept (24 hours, 90 days with an account), never the body. |
 | `check_reverse_dns` | PTR / forward-confirmed reverse DNS for an IP. |
 | `audit_spf_includes` | The SPF include/redirect tree — who can transitively send as the domain, with typed findings (broken include, confirmed-unregistered include, expiring registration, nested `+all`). Analysis only; no SPF fix record. |
 | `build_parked_domain_records` | The Null MX + `v=spf1 -all` + `p=reject; np=reject` hardening pack for a domain that sends no mail. The server re-checks DNS itself and refuses when it finds evidence of mail. |
@@ -134,7 +134,7 @@ Two supported public transports, same 27 tools:
 
 - **Hosted streamable HTTP** — `https://dnsdoctor.dev/mcp`, wired in this
   plugin's `.mcp.json`. No install, no keys.
-- **Local stdio** — `npx -y @dnsdoctor/mcp@1.14.0`. A thin server that runs on your
+- **Local stdio** — `npx -y @dnsdoctor/mcp@1.16.0`. A thin server that runs on your
   machine and calls the public DNS Doctor REST API; it holds no diagnosis logic
   of its own and relays every record string verbatim.
 
@@ -143,7 +143,7 @@ Two supported public transports, same 27 tools:
   "mcpServers": {
     "dns-doctor": {
       "command": "npx",
-      "args": ["-y", "@dnsdoctor/mcp@1.14.0"],
+      "args": ["-y", "@dnsdoctor/mcp@1.16.0"],
       "env": { "DNSDOCTOR_API_TOKEN": "dnsd_YOUR_TOKEN" }
     }
   }
