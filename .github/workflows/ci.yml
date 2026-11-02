@@ -1,9 +1,10 @@
 name: CI
 
 # This workflow ships to the public dnsdoctor/claude-plugin repo, where this
-# package IS the repo root — hence no working-directory. In the monorepo it is
-# inert (GitHub only reads .github/workflows at the repo root); the monorepo's
-# own `client` job runs the same three commands.
+# directory IS the repo root and the npm client lives in mcp-client/ (kept out
+# of the plugin root so a plugin install runs no `npm ci`). In the monorepo it
+# is inert (GitHub only reads .github/workflows at the repo root); the
+# monorepo's own `client` job runs the same three commands.
 
 on:
   push:
@@ -20,12 +21,16 @@ permissions:
 jobs:
   client:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mcp-client
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with:
           node-version: "22"
           cache: npm
+          cache-dependency-path: mcp-client/package-lock.json
       # npm ci, not npm install: lockfile-exact, fails on lockfile drift.
       - run: npm ci
       - run: npm test

@@ -18,11 +18,12 @@ claude-plugin/
 ├── .claude-plugin/plugin.json   # plugin manifest
 ├── .mcp.json                    # MCP server: https://dnsdoctor.dev/mcp (HTTP)
 ├── skills/dns-doctor/SKILL.md   # the scan → diagnose → fix workflow
-├── src/                         # @dnsdoctor/mcp — the local stdio MCP server
-├── tools.json                   # the tool definitions (generated, never hand-edited)
-├── instructions.txt             # the server's own `initialize` guidance (generated)
-├── tests/                       # vitest suite for the stdio server
-├── package.json  tsconfig.json  # npm package + build
+├── mcp-client/                  # @dnsdoctor/mcp — the local stdio MCP server (npm package)
+│   ├── src/                     # the server
+│   ├── tools.json               # the tool definitions (generated, never hand-edited)
+│   ├── instructions.txt         # the server's own `initialize` guidance (generated)
+│   ├── tests/                   # vitest suite for the stdio server
+│   └── package.json  tsconfig.json
 ├── LICENSE                      # Apache-2.0
 └── README.md
 ```
@@ -134,7 +135,7 @@ Two supported public transports, same 27 tools:
 
 - **Hosted streamable HTTP** — `https://dnsdoctor.dev/mcp`, wired in this
   plugin's `.mcp.json`. No install, no keys.
-- **Local stdio** — `npx -y @dnsdoctor/mcp@1.16.0`. A thin server that runs on your
+- **Local stdio** — `npx -y @dnsdoctor/mcp@1.16.2`. A thin server that runs on your
   machine and calls the public DNS Doctor REST API; it holds no diagnosis logic
   of its own and relays every record string verbatim.
 
@@ -143,7 +144,7 @@ Two supported public transports, same 27 tools:
   "mcpServers": {
     "dns-doctor": {
       "command": "npx",
-      "args": ["-y", "@dnsdoctor/mcp@1.16.0"],
+      "args": ["-y", "@dnsdoctor/mcp@1.16.2"],
       "env": { "DNSDOCTOR_API_TOKEN": "dnsd_YOUR_TOKEN" }
     }
   }
@@ -157,10 +158,14 @@ the three monitoring reads need it).
 
 ### Build the stdio server from source
 
+The npm package lives in `mcp-client/`, not the plugin root, so installing the
+plugin itself installs nothing.
+
 ```bash
+cd mcp-client
 npm ci
 npm test
-npm run build      # -> dist/index.js, the package's bin entrypoint
+npm run build      # -> mcp-client/dist/index.js, the package's bin entrypoint
 ```
 
 `tools.json` and `instructions.txt` are **generated from the hosted server** and

@@ -1,6 +1,6 @@
 {
   "name": "@dnsdoctor/mcp",
-  "version": "1.16.0",
+  "version": "1.16.2",
   "mcpName": "dev.dnsdoctor/dns-doctor",
   "description": "Thin stdio MCP server for DNS Doctor — scan, fix and verify a domain's DNS: SPF, DMARC, DKIM, multi-region propagation, MX, DNS health, blacklists and expiry, over the public DNS Doctor REST API.",
   "license": "Apache-2.0",
@@ -11,7 +11,8 @@
   "homepage": "https://dnsdoctor.dev/methodology",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/dnsdoctor/claude-plugin.git"
+    "url": "git+https://github.com/dnsdoctor/claude-plugin.git",
+    "directory": "mcp-client"
   },
   "keywords": [
     "mcp",
@@ -36,7 +37,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "prepack": "npm run build",
+    "prepack": "cp ../README.md ../LICENSE . && npm run build",
+    "postpack": "rm -f README.md LICENSE",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },

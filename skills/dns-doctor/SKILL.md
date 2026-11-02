@@ -103,7 +103,7 @@ The tools come from the DNS Doctor MCP server. Two ways to reach it:
 - **Streamable HTTP (default, no setup):** `https://dnsdoctor.dev/mcp` — anonymous
   access exposes all the scanner tools. This plugin's MCP configuration already points
   here.
-- **Local stdio:** `npx -y @dnsdoctor/mcp@1.16.0` — the same 27 tools, run as a local
+- **Local stdio:** `npx -y @dnsdoctor/mcp@1.16.2` — the same 27 tools, run as a local
   process that calls the public DNS Doctor REST API. Use it when your client
   prefers stdio, or when you want the server under your own supervision. Set
   `DNSDOCTOR_API_TOKEN` in its environment to use a token (optional for the
@@ -568,6 +568,11 @@ proving DKIM before tightening DMARC.
 1. `start_email_test`. Print the returned `address` exactly as returned and ask
    the user to send ONE email to it from the sender they want to test (the
    Google Workspace mailbox, the newsletter tool, the app) within the hour.
+   Say plainly that THEY send it, from their own mail app or sending service:
+   the test only works with a message they send themselves, and DNS Doctor
+   does not send it for them. If they have not sent it when you ask,
+   remind them to send it now (the address works about an hour, one message)
+   before you poll.
 2. When they say it is sent, `get_email_test` with the `test_id`. `pending`
    means not arrived yet or still being checked: wait a little and ask again;
    do not start a new test unless the address has `expired`.

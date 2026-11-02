@@ -68,8 +68,16 @@ describe("the tarball carries everything the client reads at runtime", () => {
   it("builds on pack, so the bin target cannot be missing from the tarball", () => {
     // `dist/` is gitignored AND excluded from the public snapshot sync, so a
     // publish from a fresh checkout without this hook ships a bin that is not there.
-    expect(pkg.scripts.prepack).toBe("npm run build");
+    expect(pkg.scripts.prepack).toMatch(/&& npm run build$/);
     expect(pkg.bin["dnsdoctor-mcp"]).toBe("dist/index.js");
+  });
+
+  it("copies the plugin root's README and LICENSE in, and removes them after", () => {
+    // The package lives in mcp-client/ (a lockfile at the plugin root makes a
+    // plugin install run `npm ci`), but npm only ships README/LICENSE from the
+    // package dir, so the npm page would lose both without this pair.
+    expect(pkg.scripts.prepack).toMatch(/^cp \.\.\/README\.md \.\.\/LICENSE \. && /);
+    expect(pkg.scripts.postpack).toBe("rm -f README.md LICENSE");
   });
 });
 
