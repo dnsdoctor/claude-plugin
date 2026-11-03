@@ -18,6 +18,8 @@ claude-plugin/
 ├── .claude-plugin/plugin.json   # plugin manifest
 ├── .mcp.json                    # MCP server: https://dnsdoctor.dev/mcp (HTTP)
 ├── skills/dns-doctor/SKILL.md   # the scan → diagnose → fix workflow
+├── skills/verify-change/SKILL.md  # did my change land → propagation → look again
+├── skills/fix-dmarc/SKILL.md    # scan → next DMARC record → re-check
 ├── mcp-client/                  # @dnsdoctor/mcp — the local stdio MCP server (npm package)
 │   ├── src/                     # the server
 │   ├── tools.json               # the tool definitions (generated, never hand-edited)
@@ -135,7 +137,7 @@ Two supported public transports, same 27 tools:
 
 - **Hosted streamable HTTP** — `https://dnsdoctor.dev/mcp`, wired in this
   plugin's `.mcp.json`. No install, no keys.
-- **Local stdio** — `npx -y @dnsdoctor/mcp@1.16.2`. A thin server that runs on your
+- **Local stdio** — `npx -y @dnsdoctor/mcp@1.18.0`. A thin server that runs on your
   machine and calls the public DNS Doctor REST API; it holds no diagnosis logic
   of its own and relays every record string verbatim.
 
@@ -144,7 +146,7 @@ Two supported public transports, same 27 tools:
   "mcpServers": {
     "dns-doctor": {
       "command": "npx",
-      "args": ["-y", "@dnsdoctor/mcp@1.16.2"],
+      "args": ["-y", "@dnsdoctor/mcp@1.18.0"],
       "env": { "DNSDOCTOR_API_TOKEN": "dnsd_YOUR_TOKEN" }
     }
   }
