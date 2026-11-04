@@ -1,6 +1,3 @@
 node_modules/
 dist/
 *.tgz
-# prepack copies these in for the npm tarball; postpack removes them
-mcp-client/README.md
-mcp-client/LICENSE
