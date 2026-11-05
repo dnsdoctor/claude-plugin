@@ -38,6 +38,9 @@ each ending on the next one. Stop when the user's question is answered.
    - `not_registered: true`: the domain does not exist (usually a typo). Ask
      which domain they meant.
    Two resolvers is the whole sample of this read: never call it worldwide.
+   If the user wants to be told when it lands (on `wait` or `edit`), call
+   `watch_record_change` with the same arguments: one email to their linked
+   account. Relay `watch.note`; never ask for an email address.
 2. **Has it propagated?** Call `check_propagation` with the exact name the
    record lives at (`_dmarc.example.com` for DMARC, `selector._domainkey.example.com`
    for DKIM, the apex for SPF and MX), `record_type` (`TXT` for SPF, DMARC and

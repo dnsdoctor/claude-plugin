@@ -30,9 +30,11 @@ DMARC record, re-check).
 | User's question | First tool and boundary |
 |---|---|
 | One record, or did my change land? | `check_record` for the requested type/name, with `expected_value` when checking an edit. Preserve subdomains such as `www`; use `host` where applicable. Relay `verdict`; on `wait`, wait `check_again_after_seconds` before checking again. An empty answer is absence; a lookup failure is unknown. |
+| Tell me when my change is live? | `watch_record_change` (linked account) with the same arguments as the `check_record` call. Relay `watch.note`: one email to the account's own address. Without a linked account, share the `check_record` result's `watch.url` instead. Never ask for an email address. |
 | Which domains does the account monitor? | `list_my_domains` (token). Never guess the list from alerts. |
 | Has it propagated across regions? | `check_propagation` with the exact FQDN and record type; use the supplied `expected_value` when present. Report actual coverage, not a worldwide claim from a local read. |
 | Registrar, registration, expiry or locks? | `lookup_registration`; `unknown` is never proof a name is available. |
+| Choosing a domain name: which candidates are taken? | Suggest candidates, then call `check_domain_names` ONCE with up to 20 of them. Relay `not_registered` as "the registry has no registration", never "available", and relay `caveat` as given (premium status and price are not checked). `unknown` is never absence. |
 | Is this DKIM selector published? | `check_dkim_selector` with the selector the user or provider supplied. Never fabricate a key or selector. |
 | Broad email-authentication or DNS diagnosis? | `scan_domain`, then focused follow-up only as needed. It publishes a public report; do not scan a domain the user wants kept private. |
 | Does a real email actually authenticate (signed, aligned, why it lands in spam)? | `start_email_test`, then the "Test a real email" playbook below. A published DKIM key does not prove the sender signs; one test message does. |
@@ -51,7 +53,7 @@ Every tool call goes to one host, `https://dnsdoctor.dev` (or the local `@dnsdoc
 client, which calls the same public API). What leaves the machine is exactly what the user
 asked to check: a domain name, and for the focused tools a record name, an IP address, a DKIM
 selector, a pasted DMARC record, or an uploaded DMARC report. Nothing else is read or sent — no
-files, no environment beyond an optional `DNSDOCTOR_API_TOKEN`, no message contents.
+files, no environment variables, no credentials, no message contents.
 
 The email test is the one case where the USER sends something: one email of their choosing,
 from their own mail system, to the single-use address `start_email_test` returns. DNS Doctor
@@ -70,11 +72,11 @@ Two things the user should know before you scan a domain for them:
 - **A scan result is a public report page** at `https://dnsdoctor.dev/scan/<domain>` (the free
   scanner is a public service, like a DNS lookup site). Do not scan a domain the user wants kept
   private, and say so if they ask.
-- **The optional API token** (`DNSDOCTOR_API_TOKEN`) goes to dnsdoctor.dev only, as an
-  `Authorization` header, and only if the user put it in your environment; the local
-  `@dnsdoctor/mcp` client attaches it to its requests, and the server uses it for the three
-  monitoring reads (`get_alerts`, `get_readiness`, `get_lookalikes`), `list_email_tests`, `list_my_domains` and the `dnsdoctor://domains` resource. Never
-  send any other credential, and never ask for one.
+- **Account tools sign in through the host.** The three monitoring reads (`get_alerts`,
+  `get_readiness`, `get_lookalikes`), `list_email_tests`, `list_my_domains` and the
+  `dnsdoctor://domains` resource need the user's DNS Doctor account: the host's own sign-in
+  (OAuth to dnsdoctor.dev) connects it when one of them is called. Never read a credential
+  from the user's machine, and never ask the user to paste one into the chat.
 
 DNS Doctor never changes DNS: it returns records for a human to publish.
 
@@ -106,11 +108,10 @@ The tools come from the DNS Doctor MCP server. Two ways to reach it:
 - **Streamable HTTP (default, no setup):** `https://dnsdoctor.dev/mcp` — anonymous
   access exposes all the scanner tools. This plugin's MCP configuration already points
   here.
-- **Local stdio:** `npx -y @dnsdoctor/mcp@1.18.0` — the same 27 tools, run as a local
+- **Local stdio:** `npx -y @dnsdoctor/mcp@1.20.0` — the same 29 tools, run as a local
   process that calls the public DNS Doctor REST API. Use it when your client
-  prefers stdio, or when you want the server under your own supervision. Set
-  `DNSDOCTOR_API_TOKEN` in its environment to use a token (optional for the
-  diagnosis tools; required for the three monitoring reads).
+  prefers stdio, or when you want the server under your own supervision. Its README
+  explains account access for the monitoring reads.
 
 The diagnosis tools need no token and are enough for a one-off
 diagnosis. An API token (`Authorization: Bearer dnsd_…`) additionally unlocks:
@@ -122,6 +123,7 @@ diagnosis. An API token (`Authorization: Bearer dnsd_…`) additionally unlocks:
   a valid API token is required.
 - `list_email_tests` — the account's own earlier email tests, under the same token rule.
 - `list_my_domains` — every domain on the account with its state and next step, under the same token rule.
+- `watch_record_change` — one free record watch for a linked account: it reads the record once and, on `wait` or `edit`, emails the account once when the change is finished (up to 48 hours). Asking again returns the running watch.
 - the `dnsdoctor://domains` resource — the account's continuously-monitored
   domains. Over HTTP that resource is likewise always *listed* and refused
   without a token.
@@ -160,6 +162,7 @@ the same validating engine:
 | `check_record` | `{ domain, kind, host?, expected_value? }` | **Did the change land?** Reads the record from the domain's OWN nameservers (cache-free) *and* from two public caching resolvers. `kind` is `spf\|dmarc\|txt\|mx\|cname\|a\|aaaa` — name the kind and the right query is derived for you. Pass `expected_value` (the value just published) when checking an edit. `verdict` is `done` (the nameservers serve it and both caches agree), `wait` (served, caches still catching up — wait `check_again_after_seconds` before checking again rather than re-checking at once) or `edit` (the domain's nameservers do not serve it; with `expected_value`, `found_at` lists the names it was observed at instead, e.g. the domain typed twice). `not_registered: true` means the domain does not exist (usually a typo). An error starting `cant_tell` is a lookup fault, never evidence the record is missing. Empty `values` means the record is genuinely absent. ⚠️ **Two resolvers is the whole sample — never describe this as worldwide, global, or propagation coverage.** |
 | `check_propagation` | `{ name, record_type?, expected_value? }` | **Has the change gone global?** Six vantage points — five owner-run probes across four continents plus this server's own resolver — each read the same name through several resolvers, and the grid comes back with a deterministic `verdict`. Call it after the human publishes a record: **you have ONE network vantage point**, and a record that resolves for you can still be missing elsewhere. `name` is used exactly as given — a leading `www.` is **not** stripped and `_dmarc.example.com` works — so pass the name the record is published at, not the registrable domain. `record_type` is `A\|AAAA\|CNAME\|MX\|TXT\|NS` (SPF and DMARC records are `TXT`). Supply `expected_value` and every cell is reported as match or mismatch against it; omit it and the check reports only whether the vantage points agree with each other. **Observation only — no record is ever composed here.** A cell that did not answer is `unavailable`, which is **not** a negative result, and below three vantage points reached the verdict downgrades to `unknown` — report `vantage_reached` of `vantage_total` rather than calling a name converged on partial coverage. Use `check_record` when the question is only "did my own nameservers take it"; this one answers "is it live everywhere". |
 | `lookup_registration` | `{ domain }` | **Who is this domain registered with, and until when?** One RDAP read: registrar, registration/updated/expiry dates, EPP status codes (`clientTransferProhibited`, `pendingDelete`…), nameservers, DNSSEC flag, abuse contact. **Observation only** — no record is ever composed. `status` is `registered`, `not_registered` or `unknown` with a `reason` (`no_rdap_for_tld`, `rate_limited`, `timeout`, `registry_error`, `malformed_response`): **never tell anyone a name is free unless `status` is exactly `not_registered`** — many country domains publish no RDAP and answer `unknown`. `redacted: true` is the post-GDPR norm, a state rather than a failure. |
+| `check_domain_names` | `{ names }` | **Which of these candidate names are already registered?** For a user choosing a domain name: 1-20 names in ONE call, each read live from its registry over RDAP. `status` per name is `registered` (with the registry's `registry_status` words and `expires_at`; `being_deleted: true` means still registered and not registrable yet), `not_registered` (the registry holds no registration: never say "available", premium and reserved names read the same) or `unknown` with a `reason`. Relay `caveat` as given; `next_step` is the email-authentication setup once a name is registered. Nothing is stored. |
 | `check_lookalikes` | `{ domain }` | **Has someone registered a name close to this one?** DNS-only and cache-first: checks the closest variants of the name and returns `checked`, `of`, `resolving`, `accepts_mail` and `unknown` (`complete` is false while any name could not be checked), a code-written `summary`, and up to ten resolving `names` with `kind`, `accepts_mail` and `same_infra` (it points at the domain's own nameservers or mail servers — usually a defensive registration). **Facts, never a verdict:** resolving only means a name is registered and answers, so relay the names as facts and never call one malicious. An unchecked name is `unknown`, never free, and unregistered names are never listed. If the user wants these names re-checked over time, call `start_monitoring_signup`. |
 | `check_bimi` | `{ domain, logo_url?, certificate_url? }` | **Can this domain show its logo in the inbox (BIMI)?** A live read: `status` (`ready`, `needs_enforcement`, `needs_logo`, `declined`, `broken`, `unknown`), `next_step`, the DMARC gate as `dmarc_sources` (each policy read and why it does or does not enforce), the published `default._bimi` record, the logo checked as SVG Tiny PS and any certificate (chain-verified to a Mark Verifying Authority root, `trust_verified` true / false + `trust_reason` / null when the check could not run; revocation not checked). `mailboxes` is **eligibility per mailbox, never a promise that a logo will show**. With `logo_url` (+ optional `certificate_url`), `generated.record` is the engine's record to publish at `generated.host`: present it verbatim; it is `null` while DMARC is not at enforcement, so relay `generated.rationale`. `unknown` is a lookup or download that failed, never a broken setup. |
 | `check_reverse_dns` | `{ ip }` | Forward-confirmed reverse DNS (FCrDNS) for one sending IP: the PTR record, the addresses that hostname resolves back to, and a `verdict` of `confirmed`, `ptr_missing` or `mismatch`. **A PTR alone proves nothing** — the IP's operator writes its own reverse zone, so only the forward confirmation is evidence, and **the fix belongs to whoever controls the IP**, never in the sending domain's own DNS. |
