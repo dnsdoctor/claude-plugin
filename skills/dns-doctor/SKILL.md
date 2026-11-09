@@ -34,7 +34,7 @@ DMARC record, re-check).
 | Which domains does the account monitor? | `list_my_domains` (token). Never guess the list from alerts. |
 | Has it propagated across regions? | `check_propagation` with the exact FQDN and record type; use the supplied `expected_value` when present. Report actual coverage, not a worldwide claim from a local read. |
 | Registrar, registration, expiry or locks? | `lookup_registration`; `unknown` is never proof a name is available. |
-| Choosing a domain name: which candidates are taken? | Suggest candidates, then call `check_domain_names` ONCE with up to 20 of them. Relay `not_registered` as "the registry has no registration", never "available", and relay `caveat` as given (premium status and price are not checked). `unknown` is never absence. |
+| Choosing a domain name: which candidates are taken, or what do they cost? | Suggest candidates, then call `check_domain_names` ONCE with up to 20 of them. Relay `not_registered` as "the registry has no registration", never "available", and relay `caveat` as given (premium status is not checked). For cost questions, point to the result card: for names with no registration it shows standard prices for each ending; you do not see those numbers, so never quote or guess a price. `unknown` is never absence. |
 | Is this DKIM selector published? | `check_dkim_selector` with the selector the user or provider supplied. Never fabricate a key or selector. |
 | Broad email-authentication or DNS diagnosis? | `scan_domain`, then focused follow-up only as needed. It publishes a public report; do not scan a domain the user wants kept private. |
 | Does a real email actually authenticate (signed, aligned, why it lands in spam)? | `start_email_test`, then the "Test a real email" playbook below. A published DKIM key does not prove the sender signs; one test message does. |
@@ -53,7 +53,8 @@ Every tool call goes to one host, `https://dnsdoctor.dev` (or the local `@dnsdoc
 client, which calls the same public API). What leaves the machine is exactly what the user
 asked to check: a domain name, and for the focused tools a record name, an IP address, a DKIM
 selector, a pasted DMARC record, or an uploaded DMARC report. Nothing else is read or sent — no
-files, no environment variables, no credentials, no message contents.
+files, no message contents. You never read a credential from the user's machine and never ask
+the user for one; account sign-in is handled by the host.
 
 The email test is the one case where the USER sends something: one email of their choosing,
 from their own mail system, to the single-use address `start_email_test` returns. DNS Doctor
@@ -108,7 +109,7 @@ The tools come from the DNS Doctor MCP server. Two ways to reach it:
 - **Streamable HTTP (default, no setup):** `https://dnsdoctor.dev/mcp` — anonymous
   access exposes all the scanner tools. This plugin's MCP configuration already points
   here.
-- **Local stdio:** `npx -y @dnsdoctor/mcp@1.20.0` — the same 29 tools, run as a local
+- **Local stdio:** `npx -y @dnsdoctor/mcp@1.21.0` — the same 29 tools, run as a local
   process that calls the public DNS Doctor REST API. Use it when your client
   prefers stdio, or when you want the server under your own supervision. Its README
   explains account access for the monitoring reads.
@@ -123,7 +124,7 @@ diagnosis. An API token (`Authorization: Bearer dnsd_…`) additionally unlocks:
   a valid API token is required.
 - `list_email_tests` — the account's own earlier email tests, under the same token rule.
 - `list_my_domains` — every domain on the account with its state and next step, under the same token rule.
-- `watch_record_change` — one free record watch for a linked account: it reads the record once and, on `wait` or `edit`, emails the account once when the change is finished (up to 48 hours). Asking again returns the running watch.
+- `watch_record_change` — one record watch for a linked account: it reads the record once and, on `wait` or `edit`, emails the account once when the change is finished (up to 48 hours). Asking again returns the running watch.
 - the `dnsdoctor://domains` resource — the account's continuously-monitored
   domains. Over HTTP that resource is likewise always *listed* and refused
   without a token.
@@ -149,7 +150,7 @@ correctly" question:
 | `check_domain_verification` | `{ domain }` | **Needs a linked account.** Re-checks ownership and marks the domain verified on a match — either record proves it: the DMARC record with our report address, or the TXT record instead. Says WHICH outcome (`not_found` / `mismatch` / `transient` / `fault` / `verified`) and which nameservers were asked — a `transient` or `fault` outcome is OUR lookup, never a verdict about their DNS. It also carries the DMARC reporting record — on a pending domain too, where it is the one record to publish — which REPLACES their existing DMARC TXT rather than sitting beside it. |
 | `get_domain_records` | `{ domain }` | **Needs a linked account.** Read-only: the TXT challenge while unverified, the DMARC reporting record once it has been issued (on a pending domain too — `check_domain_verification` issues it; either record proves ownership), and whether we have observed it published. |
 
-Twelve focused tools for the single questions a full scan over-answers. Each runs
+Focused tools for the single questions a full scan over-answers. Each runs
 the same validating engine:
 
 | Tool | Input | Returns |
@@ -619,7 +620,7 @@ comparison is needed. Never request a password, API token or private signing key
 
 ## Playbooks
 
-Six read-orders over the tool surface. Each is an evidence sequence: run the
+Read-orders over the tool surface. Each is an evidence sequence: run the
 step, read what it rules in or out, and stop when the evidence answers the
 question. **Report what the tools returned.** Do not estimate how much mail is
 affected, how likely a problem is, or what a fix will improve by — DNS Doctor
