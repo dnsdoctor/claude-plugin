@@ -1,5 +1,7 @@
 # DNS Doctor MCP server and Claude Code plugin — DNS skill (DMARC, SPF, DKIM)
 
+[![DNS Doctor MCP server – quality and maintenance score on Glama](https://glama.ai/mcp/servers/dnsdoctor/claude-plugin/badges/score.svg)](https://glama.ai/mcp/servers/dnsdoctor/claude-plugin)
+
 Scan, fix and verify a domain's DNS — email authentication (SPF, DMARC, DKIM)
 first, plus multi-region propagation, SPF include supply-chain audits, MX, DNS
 health, blacklists and domain/SSL expiry — from inside Claude. This plugin bundles the DNS Doctor **skill**
